@@ -14,5 +14,5 @@ This allows better code reuse, integration with existing test frameworks and bet
 
 # Current state
 * pre-alfa
-* experimental Python <-> verilator binding
+* experimental Python <-> Verilator binding
  
