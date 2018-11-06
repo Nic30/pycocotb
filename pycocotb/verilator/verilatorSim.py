@@ -20,7 +20,6 @@ from jinja2.loaders import PackageLoader
 from pycocotb.verilator.ccompiler_tweaks import monkey_patch_parallel_compilation
 from pycocotb.verilator.fs_utils import find_files, working_directory
 
-
 COCOPY_SRC_DIR = os.path.join(os.path.dirname(__file__), "c_files")
 COCOPY_SRCS = [os.path.join(COCOPY_SRC_DIR, "signal_mem_proxy.cpp"), ]
 VERILATOR_ROOT = "/usr/local/share/verilator"
@@ -96,10 +95,9 @@ if __name__ == "__main__":
     from hwt.hdl.types.bits import Bits
     from hwt.serializer.verilog.serializer import VerilogSerializer
     from hwt.synthesizer.utils import toRtl
-    #from hwtLib.amba.axi_comp.axi4_streamToMem import Axi4streamToMem
+    # from hwtLib.amba.axi_comp.axi4_streamToMem import Axi4streamToMem
     from hwtLib.amba.axis_comp.fifo import AxiSFifo
     from ipCorePackager.constants import DIRECTION
-    
     
     def toVerilog(top, build_dir):
         files = toRtl(top, serializer=VerilogSerializer, saveTo=build_dir)
@@ -118,7 +116,7 @@ if __name__ == "__main__":
         return accessible_signals
 
     # create instance of component, configure ti and generate unique name
-    #u = Axi4streamToMem()
+    # u = Axi4streamToMem()
     u = AxiSFifo()
     u.DEPTH.set(128)
     u.DATA_WIDTH.set(128)
