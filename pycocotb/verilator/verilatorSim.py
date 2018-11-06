@@ -25,7 +25,7 @@ COCOPY_SRCS = [os.path.join(COCOPY_SRC_DIR, "signal_mem_proxy.cpp"), ]
 VERILATOR_ROOT = "/usr/local/share/verilator"
 VERILATOR_INCLUDE_DIR = os.path.join(VERILATOR_ROOT, "include")
 VERILATOR = "verilator_bin_dbg"
-template_env = Environment(loader=PackageLoader('pycocotb', "verilator", 'templates'))
+template_env = Environment(loader=PackageLoader("pycocotb", "verilator/templates"))
 verilator_sim_wrapper_template = template_env.get_template(
     'verilator_sim.cpp.template')
 
@@ -33,10 +33,10 @@ verilator_sim_wrapper_template = template_env.get_template(
 def verilatorCompile(files, build_dir):
     files = [files[-1], ]
     cmd = [VERILATOR, "--cc", "--trace", "--Mdir", build_dir] + files
-    print(" ".join(cmd))
     try:
         check_call(cmd)
     except Exception as e:
+        print(" ".join(cmd), file=sys.stderr)
         raise
 
 
@@ -49,27 +49,29 @@ def getSrcFiles(build_dir, verilator_include_dir):
     return [*build_sources, *verilator_sources, *COCOPY_SRCS]
 
 
-def generatePythonModuleWrapper(top, build_dir, verilator_include_dir, accessible_signals, thread_pool):
+def generatePythonModuleWrapper(top_name, top_unique_name, build_dir, verilator_include_dir, accessible_signals, thread_pool):
     """
     Collect all c/c++ files into setuptools.Extension and build it
 
-    :return: tuple (file name, lib name) file name of builded module (.so/.dll file)
+    :param top_name: name of top in simulation
+    :param top_unique_name: unique name used as name for simulator module
+    :param build_dir: tmp directory where simulation should be build
+    :param verilator_include_dir: 
+
+    :return: file name of builded module (.so/.dll file)
     """
-
-    name = '%s_%d' % (top._name, abs(hash(top)))
-
     with working_directory(build_dir):
-        with open("V" + top._name + "_sim_wrapper.cpp", "w") as f:
+        with open("V" + top_name + "_sim_wrapper.cpp", "w") as f:
             f.write(verilator_sim_wrapper_template.render(
-                module_name=name,
-                top_name=top._name,
+                module_name=top_unique_name,
+                top_name=top_name,
                 accessible_signals=accessible_signals))
         sources = getSrcFiles(".", verilator_include_dir)
         with monkey_patch_parallel_compilation(thread_pool):
             dist = Distribution()
 
             dist.parse_config_files()
-            sim = Extension(name,
+            sim = Extension(unique_name,
                             include_dirs=[verilator_include_dir,
                                           build_dir, COCOPY_SRC_DIR],
                             extra_compile_args=['-std=c++17'],
@@ -87,7 +89,7 @@ def generatePythonModuleWrapper(top, build_dir, verilator_include_dir, accessibl
             _build_ext.parallel = 5
             _build_ext.finalize_options()
             _build_ext.run()
-            return os.path.join(build_dir, _build_ext.build_lib, sim._file_name), name
+            return os.path.join(build_dir, _build_ext.build_lib, sim._file_name)
 
 
 if __name__ == "__main__":
@@ -120,7 +122,6 @@ if __name__ == "__main__":
     u = AxiSFifo()
     u.DEPTH.set(128)
     u.DATA_WIDTH.set(128)
-    _unique_name = "%s_%s" % (u.__class__.__name__, abs(hash(u)))
     unique_name = u.__class__.__name__
     
     # with tempdir(suffix=unique_name) as build_dir:
@@ -131,15 +132,15 @@ if __name__ == "__main__":
 
         verilatorCompile(v_files, build_dir)
         with multiprocessing.pool.ThreadPool(multiprocessing.cpu_count()) as thread_pool:
-            sim_so, sim_name = generatePythonModuleWrapper(
-                u, build_dir, VERILATOR_INCLUDE_DIR, accessible_signals, thread_pool)
+            sim_so = generatePythonModuleWrapper(u._name, unique_name,
+                build_dir, VERILATOR_INCLUDE_DIR, accessible_signals, thread_pool)
 
             # load compiled library to python
             importer = machinery.FileFinder(os.path.dirname(os.path.abspath(sim_so)),
                                             (machinery.ExtensionFileLoader,
                                              machinery.EXTENSION_SUFFIXES))
-            sim = importer.find_module(sim_name).load_module(sim_name)
-            sim_cls = getattr(sim, _unique_name)
+            sim = importer.find_module(unique_name).load_module(unique_name)
+            sim_cls = getattr(sim, unique_name)
 
             # run simulation
             sim = sim_cls()
