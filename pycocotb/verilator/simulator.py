@@ -1,11 +1,13 @@
 
 
+from multiprocessing.pool import ThreadPool
 import os
 from setuptools import Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.dist import Distribution
 from subprocess import check_call
 import sys
+from typing import List, Dict
 
 from jinja2.environment import Environment
 from jinja2.loaders import PackageLoader
@@ -25,7 +27,7 @@ verilator_sim_wrapper_template = template_env.get_template(
 DEFAULT_EXTENSION_EXTRA_ARGS = {"extra_compile_args": ['-std=c++17']}
 
 
-def verilatorCompile(files, build_dir):
+def verilatorCompile(files: List[str], build_dir:str):
     files = [files[-1], ]
     cmd = [VERILATOR, "--cc", "--trace", "--Mdir", build_dir] + files
     try:
@@ -35,7 +37,7 @@ def verilatorCompile(files, build_dir):
         raise
 
 
-def getSrcFiles(build_dir, verilator_include_dir):
+def getSrcFiles(build_dir:str, verilator_include_dir:str):
     build_sources = find_files(build_dir, pattern="*.cpp", recursive=True)
     verilator_sources = [
         verilator_include_dir + "/" + x
@@ -44,10 +46,10 @@ def getSrcFiles(build_dir, verilator_include_dir):
     return [*build_sources, *verilator_sources, *COCOPY_SRCS]
 
 
-def generatePythonModuleWrapper(top_name, top_unique_name, build_dir,
-                                verilator_include_dir,
-                                accessible_signals, thread_pool,
-                                extra_Extension_args=DEFAULT_EXTENSION_EXTRA_ARGS):
+def generatePythonModuleWrapper(top_name:str, top_unique_name:str, build_dir:str,
+                                verilator_include_dir:str,
+                                accessible_signals, thread_pool:ThreadPool,
+                                extra_Extension_args:Dict[str, object]=DEFAULT_EXTENSION_EXTRA_ARGS):
     """
     Collect all c/c++ files into setuptools.Extension and build it
 
