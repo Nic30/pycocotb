@@ -1,4 +1,5 @@
 #include "signal_mem_proxy.h"
+#include <structmember.h>
 
 
 void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
@@ -8,18 +9,20 @@ void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
 	self->signal_size = signal_size;
 	self->is_signed = is_read_only;
 	self->name = PyUnicode_FromString(name);
+	self->_name = nullptr;
+	self->_dtype = nullptr;
+	self->_origin = nullptr;
+	self->_ag = nullptr;
 }
 
 
-static PyObject * SignalMemProxy_get_name(SignalMemProxy_t *self) {
-	Py_INCREF(self->name);
-	return self->name;
-}
-
-
-static PyGetSetDef
-SignalMemProxy_getters_setters[] = {
-	{(char *)"name", (getter)SignalMemProxy_get_name, nullptr, (char *)"get name of signal in simulation for this proxy", nullptr},
+static PyMemberDef
+SignalMemProxy_members[] = {
+	{(char *)"name", T_OBJECT, offsetof(SignalMemProxy_t, name), 0, (char *)"name of signal in simulation"},
+	{(char *)"_name", T_OBJECT, offsetof(SignalMemProxy_t, _name), 0, (char *)"logical name of signal in simulation"},
+	{(char *)"_dtype", T_OBJECT, offsetof(SignalMemProxy_t, _dtype), 0, (char *)"type of signal in simulation"},
+	{(char *)"_origin", T_OBJECT, offsetof(SignalMemProxy_t, _origin), 0, (char *)"original signal object for this signal proxy in simulation"},
+	{(char *)"_ag", T_OBJECT, offsetof(SignalMemProxy_t, _origin), 0, (char *)"simulation agent which drive or monitor this signal"},
     {nullptr}  /* Sentinel */
 };
 
@@ -112,8 +115,8 @@ PyTypeObject SignalMemProxy_pytype = {
     0,                          /* tp_iter */
     0,                          /* tp_iternext */
 	SignalMemProxy_methods,     /* tp_methods */
-    0,                          /* tp_members */
-	SignalMemProxy_getters_setters,     /* tp_getset */
+	SignalMemProxy_members,     /* tp_members */
+	0,                          /* tp_getset */
     0,                          /* tp_base */
     0,                          /* tp_dict */
     0,                          /* tp_descr_get */
