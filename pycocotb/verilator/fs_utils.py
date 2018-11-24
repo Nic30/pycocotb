@@ -22,8 +22,6 @@ def tempdir(suffix=None, prefix=None, dir=None):
     shutil.rmtree(dirpath)
 
 
-
-
 def find_files(directory, pattern, recursive=True):
     """
     Find files by pattern in directory
