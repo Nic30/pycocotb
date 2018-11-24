@@ -1,3 +1,4 @@
 # eclipse project
 .project
 .pydevproject
+.pyc
