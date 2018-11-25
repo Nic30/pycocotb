@@ -2,6 +2,7 @@
 #include <Python.h>
 #include <structmember.h>
 #include <vector>
+#include <verilated_vcd_c.h>
 
 #include "signal_mem_proxy.h"
 #include "V{{top_name}}.h"
@@ -10,30 +11,44 @@ typedef struct {
     PyObject_HEAD
 	V{{top_name}} *dut;
 	std::vector<SignalMemProxy_t*> signals;
+	VerilatedVcdC* tfp;
+	char * trace_file_name;
+	// Current simulation time (64-bit unsigned)
+	vluint64_t time;
 } Sim_t;
 
 static PyObject *
 Sim_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-	Sim_t *self;
-
-    self = (Sim_t *)type->tp_alloc(type, 0);
+	Sim_t *self = (Sim_t *)type->tp_alloc(type, 0);
     if (self != nullptr) {
+        // Set debug level, 0 is off, 9 is highest presently used
+        Verilated::debug(0);
+
+        // Randomization reset policy
+        Verilated::randReset(2);
+
     	self->dut = new V{{top_name}}("{{top_name}}");
         if(!self->dut) {
             PyErr_SetString(PyExc_AssertionError, "Can not create new instance of simulation");
         	return nullptr;
         }
 		SignalMemProxy_t *proxy = nullptr;
-		{% for signal_name, read_only, is_signed, type_info in accessible_signals %}
+	{% for signal_name, read_only, is_signed, type_info in accessible_signals %}
 		proxy = PyObject_NEW(SignalMemProxy_t, &SignalMemProxy_pytype);
 		SignalMemProxy_c_init(proxy, true,
 				reinterpret_cast<uint8_t*>(&self->dut->{{signal_name}}),
 				{{type_info}}, {{is_signed}}, "{{signal_name}}");
+		Py_INCREF(proxy);
 		self->signals.push_back(proxy);
-		{% endfor %}
+	{% endfor %}
 
+		self->time = 0;
+	    // turn on tracing
+		self->tfp = nullptr;
+		self->trace_file_name = nullptr;
     }
+
     return (PyObject *)self;
 }
 
@@ -41,7 +56,21 @@ static void
 Sim_dealloc(Sim_t* self)
 {
 	self->dut->final();
+	if (self->tfp) {
+		self->tfp->close();
+		delete self->tfp;
+		self->tfp = nullptr;
+		free(self->trace_file_name);
+	}
+
+	for (auto s: self->signals) {
+		s->signal = nullptr;
+		Py_DECREF(s);
+	}
+	
 	delete self->dut;
+	self->signals.clear();
+
 	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -50,29 +79,71 @@ static PyObject *
 Sim_eval(Sim_t* self, PyObject* args)
 {
     self->dut->eval();
+    // Dump trace data for this step
+    if (self->tfp)
+    	self->tfp->dump(self->time);
 
     Py_INCREF(Py_None);
     return Py_None;
 }
 
+static PyObject *
+Sim_set_trace_file(Sim_t* self, PyObject* args)
+{
+    char * trace_file = nullptr;
+    int trace_level = -1;
+	if (!PyArg_ParseTuple(args, "si", &trace_file, &trace_level))
+        return nullptr;
+
+	if (self->tfp != nullptr && strcmp(self->trace_file_name, trace_file) != 0) {
+		// different trace file will be used now
+		self->tfp->close();
+		self->tfp = nullptr;
+		free(self->trace_file_name);
+	}
+		
+	if (self->tfp == nullptr) {
+		self->trace_file_name = strdup(trace_file);
+		Verilated::traceEverOn(true);  // Verilator must compute traced signals
+		self->tfp = new VerilatedVcdC;
+		self->dut->trace(self->tfp, trace_level);  // Trace x levels of hierarchy
+		self->tfp->open(self->trace_file_name);  // Open the dump file
+	}
+
+	Py_INCREF(Py_None);
+    return Py_None;
+}
 
 static PyMethodDef Sim_methods[] = {
         {"eval", (PyCFunction)Sim_eval, METH_NOARGS, "single simulation step"},
+		{"set_trace_file", (PyCFunction)Sim_set_trace_file, METH_VARARGS,
+				"set file where data from signals should be stored\n"
+				"\n"
+				":param file_name: name of file where trace should be stored (path of vcd file f.e.)\n"
+				":param trace_depth: number of hyerarchy levels which should be trraced (-1 = all)\n"
+		},
         {nullptr}  /* Sentinel */
 };
 
 PyObject * Sim_attr_simple_getter(Sim_t * self, void * closure) {
-	auto proxy = self->signals.at(reinterpret_cast<size_t>(closure));
+	auto i = reinterpret_cast<size_t>(closure);
+	auto proxy = self->signals.at(i);
 	Py_INCREF(proxy);
 	return (PyObject*)proxy;
 }
 
 static PyGetSetDef Sim_getters_setters[] = {
-		{% for signal_name, read_only, is_signed, type_info in accessible_signals %}
+	{% for signal_name, _, _, _ in accessible_signals %}
         {(char *)"{{signal_name}}", (getter)Sim_attr_simple_getter, nullptr,
-			(char *)"simulation proxy for clk signal", (void*){{ loop.index - 1 }}},
-		{% endfor %}
+			(char *)"simulation proxy for clk signal {{signal_name}}", (void*){{ loop.index - 1 }}},
+	{% endfor %}
 		{nullptr}  /* Sentinel */
+};
+
+static PyMemberDef
+Sim_members[] = {
+	{(char *)"time", T_ULONGLONG, offsetof(Sim_t, time), 0, (char *)"actual simulation time"},
+	{nullptr}
 };
 
 static PyTypeObject Sim_pytype = {
@@ -105,7 +176,7 @@ static PyTypeObject Sim_pytype = {
     0,                          /* tp_iter */
     0,                          /* tp_iternext */
 	Sim_methods,                /* tp_methods */
-    0,                          /* tp_members */
+	Sim_members,              /* tp_members */
 	Sim_getters_setters,        /* tp_getset */
     0,                          /* tp_base */
     0,                          /* tp_dict */
