@@ -62,6 +62,7 @@ if __name__ == "__main__":
             sim = sim_cls()
             print(sim, "sim_prepared")
             for i in range(50):
+                sim.time = i
                 print(">", i)
                 if i > 10:
                     sim.rst_n.write(1)
