@@ -1,11 +1,13 @@
 #include "signal_mem_proxy.h"
 #include <structmember.h>
+#include <assert.h>
 
 
 void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
 		uint8_t * signal, size_t signal_size, bool is_signed, const char * name) {
 	self->is_read_only = is_read_only;
 	self->signal = signal;
+	assert(signal_size > 0);
 	self->signal_size = signal_size;
 	self->is_signed = is_read_only;
 	self->name = PyUnicode_FromString(name);
