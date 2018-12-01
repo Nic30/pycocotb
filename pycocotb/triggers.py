@@ -30,7 +30,7 @@ def raise_StopSimulation(sim):
     yield
 
 
-class Timer(Event):
+class Timer(object):
     """
     Container for wait time of processes
 
@@ -44,9 +44,24 @@ class Timer(Event):
         return "<Timer %r>" % (self.time)
 
 
-class ReadOnly(Event):
+PRIORITY_URGENT = 0
+PRIORITY_NORMAL = PRIORITY_URGENT + 1
+
+
+class SimStep(object):
     pass
 
 
-class WriteOnly(Event):
+class ReadOnly(SimStep):
+    PRIORITY = PRIORITY_NORMAL
+    pass
+
+
+class WriteOnly(SimStep):
+    PRIORITY = PRIORITY_NORMAL + 1
+    pass
+
+
+class WriteClkOnly(SimStep):
+    PRIORITY = PRIORITY_NORMAL + 2
     pass
