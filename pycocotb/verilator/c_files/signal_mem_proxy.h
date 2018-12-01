@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Python.h>
+#include <vector>
 
 typedef struct {
     PyObject_HEAD
@@ -8,6 +9,7 @@ typedef struct {
 	uint8_t * signal;
 	size_t signal_size;
 	bool is_signed;
+	std::vector<PyObject *> * callbacks;
 
 	// properties used for simplified associations and debug in python
 	PyObject * name; // physical name

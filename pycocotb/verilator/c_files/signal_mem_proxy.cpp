@@ -33,7 +33,7 @@ static PyObject *
 SignalMemProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	SignalMemProxy_t *self = (SignalMemProxy_t *)type->tp_alloc(type, 0);
-    if (self != nullptr) {
+    if (self == nullptr) {
         PyErr_SetString(PyExc_MemoryError, "Can not create new instance of SignalMemProxy");
         return nullptr;
     }
@@ -42,6 +42,9 @@ SignalMemProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     self->signal_size = 0;
     self->is_signed = false;
     self->name = nullptr;
+    self->callbacks = new std::vector<PyObject*>();
+    if (self->callbacks == nullptr)
+    	return nullptr;
 
     return (PyObject *)self;
 }
@@ -80,9 +83,41 @@ SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args)
     return Py_None;
 }
 
+static PyObject *
+SignalMemProxy_onChangeAdd(SignalMemProxy_t* self, PyObject* args)
+{
+    PyObject * cb = nullptr;
+	if(!PyArg_ParseTuple(args, "O", &cb)) {
+		return nullptr;
+	}
+
+	self->callbacks->push_back(cb);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+static void
+SignalMemProxy_dealloc(SignalMemProxy_t* self)
+{
+	for (auto cb: *self->callbacks) {
+		Py_DECREF(cb);
+	}
+	delete self->callbacks;
+	Py_DECREF(self->name);
+	Py_DECREF(self->_name);
+	Py_DECREF(self->_origin);
+	Py_DECREF(self->_dtype);
+
+	Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+
 static PyMethodDef SignalMemProxy_methods[] = {
         {"read", (PyCFunction)SignalMemProxy_read, METH_NOARGS, "read value from signal"},
         {"write", (PyCFunction)SignalMemProxy_write, METH_VARARGS, "write value to signal (signal can not be read only)"},
+		{"registerOnChangeCallback", (PyCFunction)SignalMemProxy_onChangeAdd, METH_VARARGS, "add onChange callback function for this signal"},
         {nullptr}  /* Sentinel */
 };
 
@@ -92,7 +127,7 @@ PyTypeObject SignalMemProxy_pytype = {
     "SignalMemProxy",            /* tp_name */
     sizeof(SignalMemProxy_t),   /* tp_basicsize */
     0,                          /* tp_itemsize */
-    0,                          /* tp_dealloc */
+	(destructor)SignalMemProxy_dealloc, /* tp_dealloc */
     0,                          /* tp_print */
     0,                          /* tp_getattr */
     0,                          /* tp_setattr */
@@ -126,5 +161,12 @@ PyTypeObject SignalMemProxy_pytype = {
     0,                          /* tp_dictoffset */
     0,                          /* tp_init */
     0,                          /* tp_alloc */
-	SignalMemProxy_new,         /* tp_new */
+	(newfunc)SignalMemProxy_new,/* tp_new */
+    0, // tp_free
+    0, // tp_is_gc
+    0, // tp_bases
+    0, // tp_mro
+    0, // tp_cache
+    0, // tp_subclasses
+    0, // tp_weaklist
 };
