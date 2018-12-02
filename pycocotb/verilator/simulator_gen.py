@@ -21,13 +21,15 @@ VERILATOR_ROOT = "/usr/local/share/verilator"
 VERILATOR_INCLUDE_DIR = os.path.join(VERILATOR_ROOT, "include")
 VERILATOR = "verilator_bin_dbg"
 
-template_env = Environment(loader=PackageLoader("pycocotb", "verilator/templates"))
+template_env = Environment(
+    loader=PackageLoader("pycocotb", "verilator/templates")
+)
 verilator_sim_wrapper_template = template_env.get_template(
     'verilator_sim.cpp.template')
 DEFAULT_EXTENSION_EXTRA_ARGS = {"extra_compile_args": ['-std=c++17']}
 
 
-def verilatorCompile(files: List[str], build_dir:str):
+def verilatorCompile(files: List[str], build_dir: str):
     files = [files[-1], ]
     cmd = [VERILATOR, "--cc", "--trace", "--Mdir", build_dir] + files
     try:
@@ -37,7 +39,7 @@ def verilatorCompile(files: List[str], build_dir:str):
         raise
 
 
-def getSrcFiles(build_dir:str, verilator_include_dir:str):
+def getSrcFiles(build_dir: str, verilator_include_dir: str):
     build_sources = find_files(build_dir, pattern="*.cpp", recursive=True)
     verilator_sources = [
         verilator_include_dir + "/" + x
@@ -46,17 +48,19 @@ def getSrcFiles(build_dir:str, verilator_include_dir:str):
     return [*build_sources, *verilator_sources, *COCOPY_SRCS]
 
 
-def generatePythonModuleWrapper(top_name:str, top_unique_name:str, build_dir:str,
-                                verilator_include_dir:str,
-                                accessible_signals, thread_pool:ThreadPool,
-                                extra_Extension_args:Dict[str, object]=DEFAULT_EXTENSION_EXTRA_ARGS):
+def generatePythonModuleWrapper(
+        top_name: str, top_unique_name: str,
+        build_dir: str,
+        verilator_include_dir: str,
+        accessible_signals, thread_pool: ThreadPool,
+        extra_Extension_args: Dict[str, object]=DEFAULT_EXTENSION_EXTRA_ARGS):
     """
     Collect all c/c++ files into setuptools.Extension and build it
 
     :param top_name: name of top in simulation
     :param top_unique_name: unique name used as name for simulator module
     :param build_dir: tmp directory where simulation should be build
-    :param verilator_include_dir: include directory of velilator
+    :param verilator_include_dir: include directory of Verilator
 
     :return: file name of builded module (.so/.dll file)
     """
@@ -83,4 +87,5 @@ def generatePythonModuleWrapper(top_name:str, top_unique_name:str, build_dir:str
             _build_ext = build_ext(dist)
             _build_ext.finalize_options()
             _build_ext.run()
-            return os.path.join(build_dir, _build_ext.build_lib, sim._file_name)
+            return os.path.join(build_dir, 
+                                _build_ext.build_lib, sim._file_name)
