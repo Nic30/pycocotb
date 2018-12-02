@@ -2,7 +2,9 @@ from heapq import heappush, heappop
 from typing import Tuple, Generator
 
 from pycocotb.triggers import Event, raise_StopSimulation, Timer, \
-    StopSimumulation, PRIORITY_URGENT, SimStep, PRIORITY_NORMAL
+    StopSimumulation, PRIORITY_URGENT, SimStep, PRIORITY_NORMAL, ReadOnly, \
+    WriteOnly, WriteClkOnly
+from inspect import isgenerator
 
 
 # internal
@@ -130,6 +132,37 @@ class HdlSimulator():
         """
         self._events.push(self.now, priority, proc)
 
+    def _run_process(self, process, now, step_no, priority, schedule):
+        # run process or activate processes dependent on Event
+        while True:
+            try:
+                # print(now, process)
+                ev = next(process)
+            except StopIteration:
+                break
+
+            # if process requires waiting put it back in queue
+            if isinstance(ev, Timer):
+                # put process to sleep as required by Timer event
+                schedule(now + ev.time, 0, priority, process)
+                break
+            elif isinstance(ev, Event):
+                # process going to wait for event
+                # if ev.process_to_wake is None event was already
+                # destroyed
+                ev.process_to_wake.append(process)
+                break
+            elif isgenerator(ev):
+                # else this process spotted new process
+                # and it has to be put in queue
+                schedule(now, priority, ev)
+            else:
+                # process is going to wait on different simulation step
+                if priority <= ev.PRIORITY:
+                    step_no += 1
+                schedule(now, step_no, ev.PRIORITY, process)
+                break
+
     def run(self, until: float, extraProcesses=[]) -> None:
         """
         Run simulation until specified time
@@ -144,11 +177,17 @@ class HdlSimulator():
             return
 
         events = self._events
-        schedule = events.push
+
+        # schedule = events.push
+        def schedule(*args):
+            # print(*args)
+            events.push(*args)
+
         next_event = events.pop
 
         # add handle to stop simulation
-        schedule(until, PRIORITY_URGENT, 0, raise_StopSimulation(self))
+        now, step_no, priority = (self.now, 0, ReadOnly.PRIORITY)
+        schedule(now + until, 0, PRIORITY_URGENT, raise_StopSimulation(self))
 
         rtl_sim = self.rtl_simulator
         rtl_pending_event_list = rtl_sim.pending_event_list
@@ -156,45 +195,31 @@ class HdlSimulator():
             # for all events
             while True:
                 now, step_no, priority, process = next_event()
-                rtl_sim.time = self.now = now
+                eval_circuit = now > self.now or priority == WriteOnly.PRIORITY or priority == WriteClkOnly.PRIORITY  # [TODO]
+                if eval_circuit:
+                    while True:
+                        # use while because we are resolving combinational loops
+                        # between event callbacks and rtl_simulator
+                        # print("eval", self.now)
+                        rtl_sim.eval()
+                        for _process in rtl_pending_event_list:
+                            if not isgenerator(_process):
+                                _process = _process(self)
 
-                rtl_sim.eval()
-                for cb in rtl_pending_event_list:
-                    cb(self)
-                rtl_pending_event_list.clear()
+                            self._run_process(_process, self.now, 0, PRIORITY_NORMAL, schedule)
+
+                        if not rtl_pending_event_list:
+                            break  # no callback triggered another callback
+
+                        rtl_pending_event_list.clear()
+
+                rtl_sim.time = self.now = now
 
                 # process is Python generator or Event
                 if isinstance(process, Event):
                     process = iter(process)
 
-                # run process or activate processes dependent on Event
-                while True:
-                    try:
-                        ev = next(process)
-                    except StopIteration:
-                        break
-
-                    # if process requires waiting put it back in queue
-                    if isinstance(ev, Timer):
-                        # put process to sleep as required by Timer event
-                        schedule(now + ev.time, 0, priority, process)
-                        break
-                    elif isinstance(ev, Event):
-                        # process going to wait for event
-                        # if ev.process_to_wake is None event was already
-                        # destroyed
-                        ev.process_to_wake.append(process)
-                        break
-                    elif issubclass(ev, SimStep):
-                        # process is going to wait on different simulation step
-                        if priority <= ev.PRIORITY:
-                            step_no += 1
-                        schedule(now, step_no, ev.PRIORITY, process)
-                        break
-                    else:
-                        # else this process spoted new process
-                        # and it has to be put in queue
-                        schedule(now, priority, ev)
+                self._run_process(process, now, step_no, priority, schedule)
 
         except StopSimumulation:
             return
