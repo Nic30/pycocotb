@@ -2,6 +2,7 @@
 #include <Python.h>
 #include <structmember.h>
 #include <vector>
+#include <unordered_set>
 #include <verilated_vcd_c.h>
 
 #include "signal_mem_proxy.h"
@@ -10,7 +11,9 @@
 typedef struct {
     PyObject_HEAD
 	V{{top_name}} *dut;
-	std::vector<SignalMemProxy_t*> signals;
+	std::vector<SignalMemProxy_t*> * signals;
+	std::unordered_set<SignalMemProxy_t*> * event_triggering_signals;
+	
 	VerilatedVcdC* tfp;
 	char * trace_file_name;
 	PyObject * pending_event_list;
@@ -23,6 +26,16 @@ Sim_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	Sim_t *self = (Sim_t *)type->tp_alloc(type, 0);
     if (self != nullptr) {
+		self->signals = new std::vector<SignalMemProxy_t*>();
+		if (self->signals == nullptr) {
+			return nullptr;
+		}
+
+		self->event_triggering_signals = new std::unordered_set<SignalMemProxy_t*>();
+		if (self->event_triggering_signals == nullptr) {
+			return nullptr;
+		}
+
         // Set debug level, 0 is off, 9 is highest presently used
         Verilated::debug(0);
 
@@ -39,16 +52,18 @@ Sim_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		proxy =(SignalMemProxy_t *) PyObject_CallObject((PyObject*)&SignalMemProxy_pytype, nullptr);
 		SignalMemProxy_c_init(proxy, true,
 				reinterpret_cast<uint8_t*>(&self->dut->{{signal_name}}),
-				{{type_info}}, {{is_signed}}, "{{signal_name}}");
-		Py_INCREF(proxy);
-		self->signals.push_back(proxy);
+				{{type_info}}, {{is_signed}}, "{{signal_name}}", self->event_triggering_signals);
+		self->signals->push_back(proxy);
+
 	{% endfor %}
 
 		self->time = 0;
 	    // turn on tracing
 		self->tfp = nullptr;
 		self->trace_file_name = nullptr;
-		
+
+
+
 		self->pending_event_list = PyList_New(0);
 		if (self->pending_event_list == nullptr) {
 			//(Sim_t *)type->tp_dealloc(self);
@@ -71,13 +86,15 @@ Sim_dealloc(Sim_t* self)
 		free(self->trace_file_name);
 	}
 
-	for (auto s: self->signals) {
+	delete self->event_triggering_signals;
+	for (auto s: *self->signals) {
 		s->signal = nullptr;
 		Py_DECREF(s);
 	}
 	
 	delete self->dut;
-	self->signals.clear();
+	self->signals->clear();
+	delete self->signals;
 
 	Py_TYPE(self)->tp_free((PyObject*)self);
 }
@@ -90,6 +107,14 @@ Sim_eval(Sim_t* self, PyObject* args)
     // Dump trace data for this step
     if (self->tfp)
     	self->tfp->dump(self->time);
+    for (auto s: *self->event_triggering_signals) {
+    	if (SignalMemProxy_value_changed(s)) {
+    		for (auto cb: *s->callbacks)
+    			PyList_Append(self->pending_event_list, cb);
+    		SignalMemProxy_cache_value(s);
+    	}
+    	
+    }
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -135,7 +160,7 @@ static PyMethodDef Sim_methods[] = {
 
 PyObject * Sim_attr_simple_getter(Sim_t * self, void * closure) {
 	auto i = reinterpret_cast<size_t>(closure);
-	auto proxy = self->signals.at(i);
+	auto proxy = self->signals->at(i);
 	Py_INCREF(proxy);
 	return (PyObject*)proxy;
 }

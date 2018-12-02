@@ -4,17 +4,16 @@
 
 
 void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
-		uint8_t * signal, size_t signal_size, bool is_signed, const char * name) {
+		uint8_t * signal, size_t signal_size, bool is_signed, const char * name,
+		std::unordered_set<SignalMemProxy_t*> * signals_checked_for_change) {
 	self->is_read_only = is_read_only;
 	self->signal = signal;
 	assert(signal_size > 0);
 	self->signal_size = signal_size;
 	self->is_signed = is_read_only;
 	self->name = PyUnicode_FromString(name);
-	self->_name = nullptr;
-	self->_dtype = nullptr;
-	self->_origin = nullptr;
-	self->_ag = nullptr;
+	self->signals_checked_for_change = signals_checked_for_change;
+	self->value_cache = new uint8_t[signal_size];
 }
 
 
@@ -44,7 +43,10 @@ SignalMemProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     self->name = nullptr;
     self->callbacks = new std::vector<PyObject*>();
     if (self->callbacks == nullptr)
-    	return nullptr;
+        return nullptr;
+
+    self->value_cache = nullptr;
+    self->signals_checked_for_change = nullptr;
 
     return (PyObject *)self;
 }
@@ -90,13 +92,27 @@ SignalMemProxy_onChangeAdd(SignalMemProxy_t* self, PyObject* args)
 	if(!PyArg_ParseTuple(args, "O", &cb)) {
 		return nullptr;
 	}
+	Py_INCREF(cb);
 
+	SignalMemProxy_cache_value(self);
 	self->callbacks->push_back(cb);
+	self->signals_checked_for_change->insert(self);
 
     Py_INCREF(Py_None);
     return Py_None;
 }
 
+void
+SignalMemProxy_cache_value(SignalMemProxy_t* self)
+{
+    memcpy(self->value_cache, self->signal, self->signal_size);
+}
+
+bool
+SignalMemProxy_value_changed(SignalMemProxy_t* self)
+{
+    return memcmp(self->value_cache, self->signal, self->signal_size) != 0;
+}
 
 static void
 SignalMemProxy_dealloc(SignalMemProxy_t* self)
@@ -105,6 +121,8 @@ SignalMemProxy_dealloc(SignalMemProxy_t* self)
 		Py_DECREF(cb);
 	}
 	delete self->callbacks;
+	delete[] self->value_cache;
+
 	Py_DECREF(self->name);
 	Py_DECREF(self->_name);
 	Py_DECREF(self->_origin);
