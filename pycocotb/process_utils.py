@@ -25,7 +25,7 @@ class CallbackLoop(object):
         self.isGenerator = isgeneratorfunction(fn)
         self.shouldBeEnabledFn = shouldBeEnabledFn
         self._callbackIndex = None
-        self.__enable = True
+        self._enable = True
 
         try:
             # if sig is interface we need internal signal
@@ -34,10 +34,10 @@ class CallbackLoop(object):
             self.sig = sig
 
     def setEnable(self, en, sim):
-        self.__enable = en
+        self._enable = en
 
     def onWriteCallback(self, sim):
-        if self.__enable and self.shouldBeEnabledFn():
+        if self._enable and self.shouldBeEnabledFn():
             if self.isGenerator:
                 yield from self.fn(sim)
             else:
@@ -59,7 +59,7 @@ class OnRisingCallbackLoop(CallbackLoop):
     """
 
     def onWriteCallback(self, sim):
-        if self.__enable and self.shouldBeEnabledFn() and int(self.sig) == 1:
+        if self._enable and self.shouldBeEnabledFn() and int(self.sig.read()) == 1:
             if self.isGenerator:
                 yield from self.fn(sim)
             else:
@@ -73,7 +73,7 @@ class OnFallingCallbackLoop(CallbackLoop):
     """
 
     def onWriteCallback(self, sim):
-        if self.__enable and self.shouldBeEnabledFn()\
+        if self._enable and self.shouldBeEnabledFn()\
                 and int(self.sig.read()) == 0:
             if self.isGenerator:
                 yield from self.fn(sim)
@@ -92,14 +92,13 @@ def oscilate(sig, period=CLK_PERIOD, initWait=0):
         halfPeriod = period / 2.0
         yield Timer(initWait)
 
-        wrOnly = WriteOnly()
         while True:
             yield s.wait(halfPeriod)
-            yield wrOnly
+            yield WriteOnly
             s.write(True, sig)
 
             yield Timer(halfPeriod)
-            yield wrOnly
+            yield WriteOnly
             s.write(False, sig)
 
     return oscillateStimul
