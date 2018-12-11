@@ -174,8 +174,12 @@ class HdlSimulator():
                 schedule(now, priority, ev)
             else:
                 # process is going to wait on different simulation step
-                if priority <= ev.PRIORITY:
+                p = ev.PRIORITY
+                if p == priority:
+                    continue
+                elif priority < p:
                     step_no += 1
+
                 schedule(now, step_no, ev.PRIORITY, process)
                 break
 
@@ -196,10 +200,10 @@ class HdlSimulator():
 
         events = self._events
 
-        # schedule = events.push
-        def schedule(*args):
-            # print(*args)
-            events.push(*args)
+        schedule = events.push
+        # def schedule(*args):
+        #     print("sched:", *args)
+        #     events.push(*args)
 
         next_event = events.pop
 
