@@ -3,6 +3,12 @@
 #include <assert.h>
 
 
+// [TODO] use random generator of the parent component
+
+inline void SET_INVALID(void * d, size_t size) {
+	memset(d, 0, size);
+}
+
 void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
 		uint8_t * signal, size_t signal_size, bool is_signed, const char * name,
 		std::unordered_set<SignalMemProxy_t*> * signals_checked_for_change) {
@@ -71,13 +77,12 @@ SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args)
 	if(!PyArg_ParseTuple(args, "O", &val)) {
 		return nullptr;
 	}
-
-	if (!PyLong_Check(val)) {
+	if (reinterpret_cast<PyObject*>(val) == Py_None) {
+		SET_INVALID(self->signal, self->signal_size);
+	} else if (!PyLong_Check(val)) {
 		PyErr_SetString(PyExc_ValueError, "Argument has to be an integer.");
 		return nullptr;
-	}
-
-	if( _PyLong_AsByteArray(val, self->signal, self->signal_size, 1, self->is_signed)) {
+	} else if( _PyLong_AsByteArray(val, self->signal, self->signal_size, 1, self->is_signed)) {
     	return nullptr;
     }
 
