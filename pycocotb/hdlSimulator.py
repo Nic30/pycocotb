@@ -65,7 +65,7 @@ Pitfalls of delta-step based HDL simulators
 
 def delta_step():
     * PRESET - write only
-    * eval() call
+    * RTL simulator eval() call
         * combinational update                     -|
         * COMB_UPDATE - read only                   | Care for comb. loops
         * COMB_REWRITE - write only                 | in sim. agents
