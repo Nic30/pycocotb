@@ -67,9 +67,9 @@ def delta_step():
     * PRESET - write only
     * eval() call
         * combinational update                     -|
-        * COMB_UPDATED - read only                  | Care for comb. loops
+        * COMB_UPDATE - read only                   | Care for comb. loops
         * COMB_REWRITE - write only                 | in sim. agents
-        * raise ResetEval() if write was used       |
+        * rerun eval() if write was used            |
         * COMB_STABLE - read only                  -|
         * check for event on signals driven by sim -| Care for sim. driven events
         * BEFORE_EDGE(clk)                                  -| Care for clock
