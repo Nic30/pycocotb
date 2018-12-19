@@ -72,11 +72,11 @@ def delta_step():
         * rerun eval() if write was used            |
         * COMB_STABLE - read only                  -|
         * check for event on signals driven by sim -| Care for sim. driven events
-        * BEFORE_EDGE(clk)                                  -| Care for clock
+        * for each clock signal:
+            * BEFORE_EDGE(clk) - read only                  -| Care for clock
             * for each start of evaluation                   | dependent agents
-              of event dependent code for each clk           | where clock is generated
-            - read only                                      | from circuit
-              (clock sig. updated but none of the registers)-|
+              of event dependent code                        | where clock is generated
+              (clock sig. updated but none of the registers)-| from circuit
     * END_OF_STEP - read only                    -| Final state resolution
 
 # Run of the simulator:
