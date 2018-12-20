@@ -26,7 +26,10 @@ template_env = Environment(
 )
 verilator_sim_wrapper_template = template_env.get_template(
     'verilator_sim.cpp.template')
-DEFAULT_EXTENSION_EXTRA_ARGS = {"extra_compile_args": ['-std=c++17']}
+DEFAULT_EXTENSION_EXTRA_ARGS = {
+    "extra_compile_args": ['-std=c++17'],
+    "libraries": ["boost_coroutine", "boost_context", "boost_system"]
+}
 
 
 def verilatorCompile(files: List[str], build_dir: str):

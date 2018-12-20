@@ -1,40 +1,103 @@
 #include <verilated.h>
+#include <verilated_vcd_c.h>
 #include <Python.h>
 #include <structmember.h>
 #include <vector>
 #include <unordered_set>
-#include <verilated_vcd_c.h>
+#include <iostream>
+#include <boost/coroutine2/all.hpp>
+#include <functional>
 
 #include "signal_mem_proxy.h"
 #include "V{{top_name}}.h"
+#include "V{{top_name}}__Syms.h"
 
-typedef struct {
+using boost::coroutines2::coroutine;
+
+enum SimEventType {
+    SIM_EV_END_OF_STEP,
+    SIM_EV_BEFORE_CLK_EVENT,
+};
+
+// Coroutine which generates pairs <isEndOfSim, clockSignal*>
+using sim_step_t = coroutine<std::pair<SimEventType, CData*>>;
+
+
+class {{top_name}}_wrap: public V{{top_name}} {
+public:
+    sim_step_t::push_type* __pause_sink;
+
+    {{top_name}}_wrap(): V{{top_name}}("{{top_name}}"), __pause_sink(nullptr) {
+        
+    }
+    void eval() {
+    	V{{top_name}}::eval();
+        (*__pause_sink)({SIM_EV_END_OF_STEP, nullptr});
+    }
+
+    virtual void onBeforeEdge(V{{top_name}}__Syms* __restrict vlSymsp, CData &clkSig) override {
+        VL_DEBUG_IF(VL_DBG_MSGF("+    Decorated{{top_name}}::onBeforeEdge\n"); );
+        (*__pause_sink)({SIM_EV_BEFORE_CLK_EVENT, &clkSig});
+    }
+    virtual ~{{top_name}}_wrap() {}
+};
+
+
+struct PySim_t {
     PyObject_HEAD
-	V{{top_name}} *dut;
-	std::vector<SignalMemProxy_t*> * signals;
-	std::unordered_set<SignalMemProxy_t*> * event_triggering_signals;
-	
-	VerilatedVcdC* tfp;
-	char * trace_file_name;
-	PyObject * pending_event_list;
-	// Current simulation time (64-bit unsigned)
-	vluint64_t time;
-} Sim_t;
+    // simulator of DUT
+    {{top_name}}_wrap *dut;
+    // coroutine of simulation step
+    sim_step_t::pull_type * actual_sim_step;
+    // python IO for signals
+    std::vector<SignalMemProxy_t*> * signals;
+    // set of singals which have sim. process which waits on event on this signal
+    std::unordered_set<SignalMemProxy_t*> * event_triggering_signals;
+    // VCD writter
+    VerilatedVcdC* tfp;
+    // VCD file name
+    char * trace_file_name;
+    // list of sim. processes which should be woken up
+    PyObject * pending_event_list;
+    // Current simulation time
+    vluint64_t time;
+};
 
-static PyObject *
-Sim_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
-	Sim_t *self = (Sim_t *)type->tp_alloc(type, 0);
+
+static void call_eval_sim(sim_step_t::push_type &sink, {{top_name}}_wrap * sim) {
+    sim->__pause_sink = &sink;
+    for (;;) {
+        sim->eval();
+    }
+}
+
+
+static void restart_simulation_deltastep(PySim_t *self) {
+    using std::placeholders::_1;
+    if (self->actual_sim_step)
+        delete self->actual_sim_step;
+    // _1 means first parameter of call_eval will be sim
+    // when coroutine obj. is constructed function is evaluated
+    // until sink is triggered
+    {{top_name}}_wrap * dut = self->dut;
+    self->actual_sim_step = new sim_step_t::pull_type(
+            std::bind(call_eval_sim, _1, dut)
+    );
+}
+
+
+static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    PySim_t *self = (PySim_t *)type->tp_alloc(type, 0);
     if (self != nullptr) {
-		self->signals = new std::vector<SignalMemProxy_t*>();
-		if (self->signals == nullptr) {
-			return nullptr;
-		}
+        self->signals = new std::vector<SignalMemProxy_t*>();
+        if (self->signals == nullptr) {
+            return nullptr;
+        }
 
-		self->event_triggering_signals = new std::unordered_set<SignalMemProxy_t*>();
-		if (self->event_triggering_signals == nullptr) {
-			return nullptr;
-		}
+        self->event_triggering_signals = new std::unordered_set<SignalMemProxy_t*>();
+        if (self->event_triggering_signals == nullptr) {
+            return nullptr;
+        }
 
         // Set debug level, 0 is off, 9 is highest presently used
         Verilated::debug(0);
@@ -42,150 +105,148 @@ Sim_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         // Randomization reset policy
         Verilated::randReset(2);
 
-    	self->dut = new V{{top_name}}("{{top_name}}");
+        self->dut = new {{top_name}}_wrap();
         if(!self->dut) {
             PyErr_SetString(PyExc_AssertionError, "Can not create new instance of simulation");
-        	return nullptr;
+            return nullptr;
         }
-		SignalMemProxy_t *proxy = nullptr;
-	{% for signal_name, read_only, is_signed, type_info in accessible_signals %}
-		proxy =(SignalMemProxy_t *) PyObject_CallObject((PyObject*)&SignalMemProxy_pytype, nullptr);
-		SignalMemProxy_c_init(proxy, true,
-				reinterpret_cast<uint8_t*>(&self->dut->{{signal_name}}),
-				{{type_info}}, {{is_signed}}, "{{signal_name}}", self->event_triggering_signals);
-		self->signals->push_back(proxy);
+        self->actual_sim_step = nullptr;
 
-	{% endfor %}
+        SignalMemProxy_t *proxy = nullptr;
+    {% for signal_name, read_only, is_signed, type_info in accessible_signals %}
+        proxy =(SignalMemProxy_t *) PyObject_CallObject((PyObject*)&SignalMemProxy_pytype, nullptr);
+        SignalMemProxy_c_init(proxy, true,
+                reinterpret_cast<uint8_t*>(&self->dut->{{signal_name}}),
+                {{type_info}}, {{is_signed}}, "{{signal_name}}", self->event_triggering_signals);
+        self->signals->push_back(proxy);
 
-		self->time = 0;
-	    // turn on tracing
-		self->tfp = nullptr;
-		self->trace_file_name = nullptr;
+    {% endfor %}
 
+        self->time = 0;
+        // turn on tracing
+        self->tfp = nullptr;
+        self->trace_file_name = nullptr;
 
-
-		self->pending_event_list = PyList_New(0);
-		if (self->pending_event_list == nullptr) {
-			//(Sim_t *)type->tp_dealloc(self);
-			return nullptr;
-		}
-		
+        self->pending_event_list = PyList_New(0);
+        if (self->pending_event_list == nullptr) {
+            //(PySim_t *)type->tp_dealloc(self);
+            return nullptr;
+        }
     }
 
     return (PyObject *)self;
 }
 
-static void
-Sim_dealloc(Sim_t* self)
-{
-	self->dut->final();
-	if (self->tfp) {
-		self->tfp->close();
-		delete self->tfp;
-		self->tfp = nullptr;
-		free(self->trace_file_name);
-	}
+static void PySim_dealloc(PySim_t* self) {
+    self->dut->final();
+    if (self->tfp) {
+        self->tfp->close();
+        delete self->tfp;
+        self->tfp = nullptr;
+        free(self->trace_file_name);
+    }
 
-	delete self->event_triggering_signals;
-	for (auto s: *self->signals) {
-		s->signal = nullptr;
-		Py_DECREF(s);
-	}
-	
-	delete self->dut;
-	self->signals->clear();
-	delete self->signals;
+    delete self->event_triggering_signals;
+    for (auto s: *self->signals) {
+        s->signal = nullptr;
+        Py_DECREF(s);
+    }
+    
+    delete self->dut;
+    self->signals->clear();
+    delete self->signals;
 
-	Py_TYPE(self)->tp_free((PyObject*)self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
+static void PySim_eval_event_triggers(PySim_t* self) {
+    for (auto s: *self->event_triggering_signals) {
+        if (SignalMemProxy_value_changed(s)) {
+            for (auto cb: *s->callbacks)
+                PyList_Append(self->pending_event_list, cb);
+            SignalMemProxy_cache_value(s);
+        }
+    }
+}
 
-static PyObject *
-Sim_eval(Sim_t* self, PyObject* args)
-{
-    self->dut->eval();
+static PyObject * PySim_eval(PySim_t* self, PyObject* args) {
+    if (self->actual_sim_step) {
+    	(*(self->actual_sim_step))();
+    } else {
+        restart_simulation_deltastep(self);
+    }
     // Dump trace data for this step
     if (self->tfp)
-    	self->tfp->dump(self->time);
-    for (auto s: *self->event_triggering_signals) {
-    	if (SignalMemProxy_value_changed(s)) {
-    		for (auto cb: *s->callbacks)
-    			PyList_Append(self->pending_event_list, cb);
-    		SignalMemProxy_cache_value(s);
-    	}
-    	
+        self->tfp->dump(self->time);
+    PySim_eval_event_triggers(self);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject * PySim_set_trace_file(PySim_t* self, PyObject* args) {
+    char * trace_file = nullptr;
+    int trace_level = -1;
+    if (!PyArg_ParseTuple(args, "si", &trace_file, &trace_level))
+        return nullptr;
+
+    if (self->tfp != nullptr && strcmp(self->trace_file_name, trace_file) != 0) {
+        // different trace file will be used now
+        self->tfp->close();
+        self->tfp = nullptr;
+        free(self->trace_file_name);
+    }
+        
+    if (self->tfp == nullptr) {
+        self->trace_file_name = strdup(trace_file);
+        Verilated::traceEverOn(true);  // Verilator must compute traced signals
+        self->tfp = new VerilatedVcdC;
+        self->dut->trace(self->tfp, trace_level);  // Trace x levels of hierarchy
+        self->tfp->open(self->trace_file_name);  // Open the dump file
     }
 
     Py_INCREF(Py_None);
     return Py_None;
 }
 
-static PyObject *
-Sim_set_trace_file(Sim_t* self, PyObject* args)
-{
-    char * trace_file = nullptr;
-    int trace_level = -1;
-	if (!PyArg_ParseTuple(args, "si", &trace_file, &trace_level))
-        return nullptr;
-
-	if (self->tfp != nullptr && strcmp(self->trace_file_name, trace_file) != 0) {
-		// different trace file will be used now
-		self->tfp->close();
-		self->tfp = nullptr;
-		free(self->trace_file_name);
-	}
-		
-	if (self->tfp == nullptr) {
-		self->trace_file_name = strdup(trace_file);
-		Verilated::traceEverOn(true);  // Verilator must compute traced signals
-		self->tfp = new VerilatedVcdC;
-		self->dut->trace(self->tfp, trace_level);  // Trace x levels of hierarchy
-		self->tfp->open(self->trace_file_name);  // Open the dump file
-	}
-
-	Py_INCREF(Py_None);
-    return Py_None;
-}
-
-static PyMethodDef Sim_methods[] = {
-        {"eval", (PyCFunction)Sim_eval, METH_NOARGS, "single simulation step"},
-		{"set_trace_file", (PyCFunction)Sim_set_trace_file, METH_VARARGS,
-				"set file where data from signals should be stored\n"
-				"\n"
-				":param file_name: name of file where trace should be stored (path of vcd file f.e.)\n"
-				":param trace_depth: number of hyerarchy levels which should be trraced (-1 = all)\n"
-		},
+static PyMethodDef PySim_methods[] = {
+        {"eval", (PyCFunction)PySim_eval, METH_NOARGS, "single simulation step"},
+        {"set_trace_file", (PyCFunction)PySim_set_trace_file, METH_VARARGS,
+                "set file where data from signals should be stored\n"
+                "\n"
+                ":param file_name: name of file where trace should be stored (path of vcd file f.e.)\n"
+                ":param trace_depth: number of hyerarchy levels which should be trraced (-1 = all)\n"
+        },
         {nullptr}  /* Sentinel */
 };
 
-PyObject * Sim_attr_simple_getter(Sim_t * self, void * closure) {
-	auto i = reinterpret_cast<size_t>(closure);
-	auto proxy = self->signals->at(i);
-	Py_INCREF(proxy);
-	return (PyObject*)proxy;
+PyObject * PySim_attr_simple_getter(PySim_t * self, void * closure) {
+    auto i = reinterpret_cast<size_t>(closure);
+    auto proxy = self->signals->at(i);
+    Py_INCREF(proxy);
+    return (PyObject*)proxy;
 }
 
-static PyGetSetDef Sim_getters_setters[] = {
-	{% for signal_name, _, _, _ in accessible_signals %}
-        {(char *)"{{signal_name}}", (getter)Sim_attr_simple_getter, nullptr,
-			(char *)"simulation proxy for clk signal {{signal_name}}", (void*){{ loop.index - 1 }}},
-	{% endfor %}
-		{nullptr}  /* Sentinel */
+static PyGetSetDef PySim_getters_setters[] = {
+    {% for signal_name, _, _, _ in accessible_signals %}
+        {(char *)"{{signal_name}}", (getter)PySim_attr_simple_getter, nullptr,
+            (char *)"simulation proxy for clk signal {{signal_name}}", (void*){{ loop.index - 1 }}},
+    {% endfor %}
+        {nullptr}  /* Sentinel */
 };
 
-static PyMemberDef
-Sim_members[] = {
-	{(char *)"time", T_ULONGLONG, offsetof(Sim_t, time), 0, (char *)"actual simulation time"},
-	{(char *)"pending_event_list", T_OBJECT, offsetof(Sim_t, pending_event_list), 0, (char *)"List of triggered callbacks"},
-	{nullptr}
+static PyMemberDef PySim_members[] = {
+    {(char *)"time", T_ULONGLONG, offsetof(PySim_t, time), 0, (char *)"actual simulation time"},
+    {(char *)"pending_event_list", T_OBJECT, offsetof(PySim_t, pending_event_list), 0, (char *)"List of triggered callbacks"},
+    {nullptr}
 };
 
-static PyTypeObject Sim_pytype = {
+static PyTypeObject PySim_pytype = {
     PyVarObject_HEAD_INIT(nullptr, 0)
     "{{module_name}}",            /* tp_name */
-    sizeof(Sim_t),   /* tp_basicsize */
+    sizeof(PySim_t),   /* tp_basicsize */
     0,                          /* tp_itemsize */
-    (destructor)Sim_dealloc,    /* tp_dealloc */
+    (destructor)PySim_dealloc,    /* tp_dealloc */
     0,                          /* tp_print */
     0,                          /* tp_getattr */
     0,                          /* tp_setattr */
@@ -202,16 +263,16 @@ static PyTypeObject Sim_pytype = {
     0,                          /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT |
         Py_TPFLAGS_BASETYPE,    /* tp_flags */
-    "HDL simulation wrapped in python c-extension",                   /* tp_doc */
+    "RTL simulation wrapped in python c-extension",                   /* tp_doc */
     0,                          /* tp_traverse */
     0,                          /* tp_clear */
     0,                          /* tp_richcompare */
     0,                          /* tp_weaklistoffset */
     0,                          /* tp_iter */
     0,                          /* tp_iternext */
-	Sim_methods,                /* tp_methods */
-	Sim_members,              /* tp_members */
-	Sim_getters_setters,        /* tp_getset */
+    PySim_methods,                /* tp_methods */
+    PySim_members,              /* tp_members */
+    PySim_getters_setters,        /* tp_getset */
     0,                          /* tp_base */
     0,                          /* tp_dict */
     0,                          /* tp_descr_get */
@@ -219,11 +280,11 @@ static PyTypeObject Sim_pytype = {
     0,                          /* tp_dictoffset */
     0,                          /* tp_init */
     0,                          /* tp_alloc */
-	Sim_new,                    /* tp_new */
+    PySim_new,                    /* tp_new */
 };
 
 
-static PyModuleDef Sim_module = {
+static PyModuleDef PySim_module = {
     PyModuleDef_HEAD_INIT,
     "{{module_name}}",
     "Generated module with simulation for {{top_name}}",
@@ -232,23 +293,21 @@ static PyModuleDef Sim_module = {
     nullptr
 };
 
-PyMODINIT_FUNC
-PyInit_{{module_name}}(void)
-{
+PyMODINIT_FUNC PyInit_{{module_name}}(void) {
     PyObject* m;
 
-    if (PyType_Ready(&Sim_pytype) < 0)
+    if (PyType_Ready(&PySim_pytype) < 0)
         return nullptr;
 
     if (PyType_Ready(&SignalMemProxy_pytype) < 0)
         return nullptr;
 
-    m = PyModule_Create(&Sim_module);
+    m = PyModule_Create(&PySim_module);
     if (!m) {
-    	return nullptr;
+        return nullptr;
     }
-    Py_INCREF(&Sim_pytype);
-    PyModule_AddObject(m, "{{module_name}}", (PyObject *)&Sim_pytype);
+    Py_INCREF(&PySim_pytype);
+    PyModule_AddObject(m, "{{module_name}}", (PyObject *)&PySim_pytype);
 
     Py_INCREF(&SignalMemProxy_pytype);
     PyModule_AddObject(m, "SignalMemProxy", (PyObject *)&SignalMemProxy_pytype);
