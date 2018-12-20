@@ -202,7 +202,7 @@ class HdlSimulator():
                 schedule(self.now, step_no, ev.PRIORITY, process)
                 break
 
-    def run(self, until: float, extraProcesses=[]) -> None:
+    def run(self, until: int, extraProcesses=[]) -> None:
         """
         Run simulation for a specified time
 
