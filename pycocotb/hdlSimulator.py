@@ -217,11 +217,11 @@ class HdlSimulator():
         if until == self.now:
             return
 
-        # schedule = self._events.push
-        def schedule(*args):
-            assert self.now <= args[0]
-            print(self.now, "sched:", *args)
-            self._events.push(*args)
+        schedule = self._events.push
+        #def schedule(*args):
+        #    assert self.now <= args[0]
+        #    print(self.now, "sched:", *args)
+        #    self._events.push(*args)
 
         next_event = self._events.pop
         top_event = self._events.top
