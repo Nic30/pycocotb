@@ -60,8 +60,3 @@ class ReadOnly(SimStep):
 class WriteOnly(SimStep):
     PRIORITY = PRIORITY_NORMAL + 1
     pass
-
-
-class WriteClkOnly(SimStep):
-    PRIORITY = PRIORITY_NORMAL + 2
-    pass

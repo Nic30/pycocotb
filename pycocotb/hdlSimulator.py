@@ -218,48 +218,51 @@ class HdlSimulator():
             return
 
         schedule = self._events.push
-        #def schedule(*args):
-        #    assert self.now <= args[0]
-        #    print(self.now, "sched:", *args)
-        #    self._events.push(*args)
+        # def schedule(*args):
+        #     assert self.now <= args[0]
+        #     print(self.now, "sched:", *args)
+        #     self._events.push(*args)
 
         next_event = self._events.pop
         top_event = self._events.top
+
+        WrP = WriteOnly.PRIORITY
+        now, step_no, priority = (self.now, 0, WrP)
         # add handle to stop simulation
-        now, step_no, priority = (self.now, 0, ReadOnly.PRIORITY)
         schedule(now + until, 0, PRIORITY_URGENT, raise_StopSimulation(self))
 
         rtl_sim = self.rtl_simulator
-        rtl_pending_event_list = rtl_sim.pending_event_list
-        WrP = WriteOnly.PRIORITY
+        rtl_pending_event_list = rtl_sim._pending_event_list
         try:
             # for all events
             while True:
                 next_now, next_step_no, next_priority, _ = top_event()
-                eval_circuit = (next_now > self.now
-                                or step_no > next_step_no
-                                or (priority == WrP and next_priority != WrP))
+                # if there was an update of circuit
+                eval_circuit = (priority == WrP 
+                                and (next_now > self.now
+                                     or step_no > next_step_no
+                                     or next_priority != WrP)
+                                )
                 if eval_circuit:
                     while True:
                         # use while because we are resolving combinational loops
                         # between event callback and rtl_simulator
-                        rtl_sim.eval()
+                        eval_end_t = rtl_sim._eval()
 
-                        if not rtl_pending_event_list:
-                            break  # no callback triggered another callback
+                        if rtl_pending_event_list:
+                            for _process in rtl_pending_event_list:
+                                if not isgenerator(_process):
+                                    _process = _process(self)
 
-                        for _process in rtl_pending_event_list:
+                                self._run_process(_process, 0, PRIORITY_NORMAL, schedule)
+                            rtl_pending_event_list.clear()
 
-                            if not isgenerator(_process):
-                                _process = _process(self)
-
-                            self._run_process(_process, 0, PRIORITY_NORMAL, schedule)
-
-                        rtl_pending_event_list.clear()
+                        if eval_end_t == rtl_sim._END_OF_STEP:
+                            break
 
                 now, step_no, priority, process = next_event()
                 assert now >= self.now, (now, process)
-                rtl_sim.time = self.now = now
+                rtl_sim._time = self.now = now
 
                 # process is Python generator or Event
                 if isinstance(process, Event):

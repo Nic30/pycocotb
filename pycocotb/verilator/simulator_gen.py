@@ -90,5 +90,5 @@ def generatePythonModuleWrapper(
             _build_ext = build_ext(dist)
             _build_ext.finalize_options()
             _build_ext.run()
-            return os.path.join(build_dir, 
-                                _build_ext.build_lib, sim._file_name)
+            return os.path.join(build_dir, _build_ext.build_lib,
+                                sim._file_name)

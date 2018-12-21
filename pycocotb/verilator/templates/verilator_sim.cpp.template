@@ -1,43 +1,35 @@
-#include <verilated.h>
-#include <verilated_vcd_c.h>
-#include <Python.h>
-#include <structmember.h>
-#include <vector>
-#include <unordered_set>
-#include <iostream>
-#include <boost/coroutine2/all.hpp>
-#include <functional>
+#include "pycocotb_common.h"
 
-#include "signal_mem_proxy.h"
 #include "V{{top_name}}.h"
 #include "V{{top_name}}__Syms.h"
-
-using boost::coroutines2::coroutine;
-
-enum SimEventType {
-    SIM_EV_END_OF_STEP,
-    SIM_EV_BEFORE_CLK_EVENT,
-};
-
-// Coroutine which generates pairs <isEndOfSim, clockSignal*>
-using sim_step_t = coroutine<std::pair<SimEventType, CData*>>;
 
 
 class {{top_name}}_wrap: public V{{top_name}} {
 public:
     sim_step_t::push_type* __pause_sink;
+    bool __comb_update_triggered;
 
-    {{top_name}}_wrap(): V{{top_name}}("{{top_name}}"), __pause_sink(nullptr) {
-        
+    {{top_name}}_wrap(): V{{top_name}}("{{top_name}}"), __pause_sink(nullptr),
+    		__comb_update_triggered(false) {
     }
     void eval() {
+    	__comb_update_triggered = false;
     	V{{top_name}}::eval();
+        if (!__comb_update_triggered) {
+        	__comb_update_triggered = true;
+        	(*__pause_sink)({SIM_EV_COMB_UPDATE_DONE, nullptr});
+        }
         (*__pause_sink)({SIM_EV_END_OF_STEP, nullptr});
     }
 
     virtual void onBeforeEdge(V{{top_name}}__Syms* __restrict vlSymsp, CData &clkSig) override {
         VL_DEBUG_IF(VL_DBG_MSGF("+    Decorated{{top_name}}::onBeforeEdge\n"); );
-        (*__pause_sink)({SIM_EV_BEFORE_CLK_EVENT, &clkSig});
+        if (!__comb_update_triggered) {
+        	__comb_update_triggered = true;
+        	(*__pause_sink)({SIM_EV_COMB_UPDATE_DONE, nullptr});
+        }
+
+        (*__pause_sink)({SIM_EV_BEFORE_EDGE, &clkSig});
     }
     virtual ~{{top_name}}_wrap() {}
 };
@@ -61,34 +53,23 @@ struct PySim_t {
     PyObject * pending_event_list;
     // Current simulation time
     vluint64_t time;
+    int COMB_UPDATE_DONE;
+    int BEFORE_EDGE;
+    int END_OF_STEP;
+    
 };
 
-
-static void call_eval_sim(sim_step_t::push_type &sink, {{top_name}}_wrap * sim) {
-    sim->__pause_sink = &sink;
-    for (;;) {
-        sim->eval();
-    }
-}
-
-
-static void restart_simulation_deltastep(PySim_t *self) {
-    using std::placeholders::_1;
-    if (self->actual_sim_step)
-        delete self->actual_sim_step;
-    // _1 means first parameter of call_eval will be sim
-    // when coroutine obj. is constructed function is evaluated
-    // until sink is triggered
-    {{top_name}}_wrap * dut = self->dut;
-    self->actual_sim_step = new sim_step_t::pull_type(
-            std::bind(call_eval_sim, _1, dut)
-    );
-}
-
-
 static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    static char *kwlist[] = {nullptr};
+	if(!PyArg_ParseTupleAndKeywords(args, kwds, "", kwlist)) {
+		return nullptr;
+	}
+
     PySim_t *self = (PySim_t *)type->tp_alloc(type, 0);
     if (self != nullptr) {
+        self->COMB_UPDATE_DONE = SIM_EV_COMB_UPDATE_DONE;
+        self->BEFORE_EDGE      = SIM_EV_BEFORE_EDGE;
+        self->END_OF_STEP      = SIM_EV_END_OF_STEP;
         self->signals = new std::vector<SignalMemProxy_t*>();
         if (self->signals == nullptr) {
             return nullptr;
@@ -114,6 +95,7 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
 
         SignalMemProxy_t *proxy = nullptr;
     {% for signal_name, read_only, is_signed, type_info in accessible_signals %}
+        Py_INCREF((PyObject*)&SignalMemProxy_pytype);
         proxy =(SignalMemProxy_t *) PyObject_CallObject((PyObject*)&SignalMemProxy_pytype, nullptr);
         SignalMemProxy_c_init(proxy, true,
                 reinterpret_cast<uint8_t*>(&self->dut->{{signal_name}}),
@@ -139,24 +121,50 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
 
 static void PySim_dealloc(PySim_t* self) {
     self->dut->final();
+        
     if (self->tfp) {
         self->tfp->close();
         delete self->tfp;
         self->tfp = nullptr;
         free(self->trace_file_name);
+        self->trace_file_name = nullptr;
     }
 
     delete self->event_triggering_signals;
+      
     for (auto s: *self->signals) {
         s->signal = nullptr;
         Py_DECREF(s);
     }
-    
-    delete self->dut;
-    self->signals->clear();
     delete self->signals;
+      
+    if (self->actual_sim_step)
+    	delete self->actual_sim_step;
+
+    delete self->dut;
 
     Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+static void call_eval_sim(sim_step_t::push_type &sink, {{top_name}}_wrap * sim) {
+    sim->__pause_sink = &sink;
+    for (;;) {
+        sim->eval();
+    }
+}
+
+
+static void restart_simulation_deltastep(PySim_t *self) {
+    using std::placeholders::_1;
+    if (self->actual_sim_step)
+        delete self->actual_sim_step;
+    // _1 means first parameter of call_eval will be sim
+    // when coroutine obj. is constructed function is evaluated
+    // until sink is triggered
+    {{top_name}}_wrap * dut = self->dut;
+    self->actual_sim_step = new sim_step_t::pull_type(
+            std::bind(call_eval_sim, _1, dut)
+    );
 }
 
 static void PySim_eval_event_triggers(PySim_t* self) {
@@ -167,6 +175,15 @@ static void PySim_eval_event_triggers(PySim_t* self) {
             SignalMemProxy_cache_value(s);
         }
     }
+}
+
+static PyObject * PySim_restart_eval(PySim_t* self, PyObject* args) {
+	if(!PyArg_ParseTuple(args, "")) {
+		return nullptr;
+	}
+	
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 static PyObject * PySim_eval(PySim_t* self, PyObject* args) {
@@ -180,8 +197,7 @@ static PyObject * PySim_eval(PySim_t* self, PyObject* args) {
         self->tfp->dump(self->time);
     PySim_eval_event_triggers(self);
 
-    Py_INCREF(Py_None);
-    return Py_None;
+    return PyLong_FromLong(self->actual_sim_step->get().first);
 }
 
 static PyObject * PySim_set_trace_file(PySim_t* self, PyObject* args) {
@@ -210,8 +226,9 @@ static PyObject * PySim_set_trace_file(PySim_t* self, PyObject* args) {
 }
 
 static PyMethodDef PySim_methods[] = {
-        {"eval", (PyCFunction)PySim_eval, METH_NOARGS, "single simulation step"},
-        {"set_trace_file", (PyCFunction)PySim_set_trace_file, METH_VARARGS,
+        {"_eval", (PyCFunction)PySim_eval, METH_NOARGS, "single simulation step"},
+		{"_restart_eval", (PyCFunction)PySim_restart_eval, METH_NOARGS, "restart evaluation"},
+        {"_set_trace_file", (PyCFunction)PySim_set_trace_file, METH_VARARGS,
                 "set file where data from signals should be stored\n"
                 "\n"
                 ":param file_name: name of file where trace should be stored (path of vcd file f.e.)\n"
@@ -236,8 +253,11 @@ static PyGetSetDef PySim_getters_setters[] = {
 };
 
 static PyMemberDef PySim_members[] = {
-    {(char *)"time", T_ULONGLONG, offsetof(PySim_t, time), 0, (char *)"actual simulation time"},
-    {(char *)"pending_event_list", T_OBJECT, offsetof(PySim_t, pending_event_list), 0, (char *)"List of triggered callbacks"},
+    {(char *)"_time", T_ULONGLONG, offsetof(PySim_t, time), 0, (char *)"actual simulation time"},
+	{(char *)"_COMB_UPDATE_DONE", T_INT, offsetof(PySim_t, COMB_UPDATE_DONE), 0, (char *)"all non edge dependent updates done"},
+	{(char *)"_BEFORE_EDGE", T_INT, offsetof(PySim_t, BEFORE_EDGE), 0, (char *)"before evaluation of edge dependent event"},
+    {(char *)"_END_OF_STEP", T_INT, offsetof(PySim_t, END_OF_STEP), 0, (char *)"all parts of circuit updated and stable"},
+    {(char *)"_pending_event_list", T_OBJECT, offsetof(PySim_t, pending_event_list), 0, (char *)"List of triggered callbacks"},
     {nullptr}
 };
 
@@ -303,9 +323,9 @@ PyMODINIT_FUNC PyInit_{{module_name}}(void) {
         return nullptr;
 
     m = PyModule_Create(&PySim_module);
-    if (!m) {
+    if (!m)
         return nullptr;
-    }
+
     Py_INCREF(&PySim_pytype);
     PyModule_AddObject(m, "{{module_name}}", (PyObject *)&PySim_pytype);
 
