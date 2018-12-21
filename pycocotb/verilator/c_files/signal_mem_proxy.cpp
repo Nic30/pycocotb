@@ -128,10 +128,10 @@ SignalMemProxy_dealloc(SignalMemProxy_t* self)
 	delete self->callbacks;
 	delete[] self->value_cache;
 
-	Py_DECREF(self->name);
-	Py_DECREF(self->_name);
-	Py_DECREF(self->_origin);
-	Py_DECREF(self->_dtype);
+	Py_XDECREF(self->name);
+	Py_XDECREF(self->_name);
+	Py_XDECREF(self->_origin);
+	Py_XDECREF(self->_dtype);
 
 	Py_TYPE(self)->tp_free((PyObject*)self);
 }
