@@ -34,7 +34,7 @@ DEFAULT_EXTENSION_EXTRA_ARGS = {
 
 def verilatorCompile(files: List[str], build_dir: str):
     files = [files[-1], ]
-    cmd = [VERILATOR, "--cc", "--trace", "--Mdir", build_dir] + files
+    cmd = [VERILATOR, "--cc", "--event-triggers", "--trace", "--Mdir", build_dir] + files
     try:
         check_call(cmd)
     except Exception:
