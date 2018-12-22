@@ -11,7 +11,8 @@ inline void SET_INVALID(void * d, size_t size) {
 
 void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
 		uint8_t * signal, size_t signal_size, bool is_signed, const char * name,
-		std::unordered_set<SignalMemProxy_t*> * signals_checked_for_change) {
+		std::unordered_set<SignalMemProxy_t*> * signals_checked_for_change,
+		const bool * read_only_not_write_only) {
 	self->is_read_only = is_read_only;
 	self->signal = signal;
 	assert(signal_size > 0);
@@ -20,23 +21,28 @@ void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
 	self->name = PyUnicode_FromString(name);
 	self->signals_checked_for_change = signals_checked_for_change;
 	self->value_cache = new uint8_t[signal_size];
+	self->read_only_not_write_only = read_only_not_write_only;
 }
 
 
 static PyMemberDef
 SignalMemProxy_members[] = {
-	{(char *)"name", T_OBJECT, offsetof(SignalMemProxy_t, name), 0, (char *)"name of signal in simulation"},
-	{(char *)"_name", T_OBJECT, offsetof(SignalMemProxy_t, _name), 0, (char *)"logical name of signal in simulation"},
-	{(char *)"_dtype", T_OBJECT, offsetof(SignalMemProxy_t, _dtype), 0, (char *)"type of signal in simulation"},
-	{(char *)"_origin", T_OBJECT, offsetof(SignalMemProxy_t, _origin), 0, (char *)"original signal object for this signal proxy in simulation"},
-	{(char *)"_ag", T_OBJECT, offsetof(SignalMemProxy_t, _origin), 0, (char *)"simulation agent which drive or monitor this signal"},
+	{(char *)"name", T_OBJECT, offsetof(SignalMemProxy_t, name), 0,
+			(char *)"name of signal in simulation"},
+	{(char *)"_name", T_OBJECT, offsetof(SignalMemProxy_t, _name), 0,
+			(char *)"logical name of signal in simulation"},
+	{(char *)"_dtype", T_OBJECT, offsetof(SignalMemProxy_t, _dtype), 0,
+			(char *)"type of signal in simulation"},
+	{(char *)"_origin", T_OBJECT, offsetof(SignalMemProxy_t, _origin), 0,
+			(char *)"original signal object for this signal proxy in simulation"},
+	{(char *)"_ag", T_OBJECT, offsetof(SignalMemProxy_t, _origin), 0,
+			(char *)"simulation agent which drive or monitor this signal"},
     {nullptr}  /* Sentinel */
 };
 
 
 static PyObject *
-SignalMemProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
+SignalMemProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 	SignalMemProxy_t *self = (SignalMemProxy_t *)type->tp_alloc(type, 0);
     if (self == nullptr) {
         PyErr_SetString(PyExc_MemoryError, "Can not create new instance of SignalMemProxy");
@@ -47,42 +53,50 @@ SignalMemProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     self->signal_size = 0;
     self->is_signed = false;
     self->name = nullptr;
+    self->value_cache = nullptr;
+    self->signals_checked_for_change = nullptr;
+    self->read_only_not_write_only = nullptr;
     self->callbacks = new std::vector<PyObject*>();
     if (self->callbacks == nullptr)
         return nullptr;
-
-    self->value_cache = nullptr;
-    self->signals_checked_for_change = nullptr;
 
     return (PyObject *)self;
 }
 
 
 static PyObject *
-SignalMemProxy_read(SignalMemProxy_t* self, PyObject* args)
-{
+SignalMemProxy_read(SignalMemProxy_t* self, PyObject* args) {
+	if (!*self->read_only_not_write_only) {
+		PyErr_SetString(PyExc_AssertionError, "Can not read value in write only simulation phase.");
+		return nullptr;
+	}
+
 	PyObject * val = _PyLong_FromByteArray(self->signal, self->signal_size, 1, self->is_signed);
     if (val == nullptr) {
     	PyErr_SetString(PyExc_AssertionError, "Can not create a PyLongObject from value in simulation.");
     	return nullptr;
     }
-	//Py_INCREF(val);
     return val;
 }
 
 static PyObject *
-SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args)
-{
+SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args) {
     PyLongObject * val = nullptr;
 	if(!PyArg_ParseTuple(args, "O", &val)) {
 		return nullptr;
 	}
+
+	if (*(self->read_only_not_write_only)) {
+		PyErr_SetString(PyExc_AssertionError, "Can not change signal value in read only simulation phase.");
+		return nullptr;
+	}
+
 	if (reinterpret_cast<PyObject*>(val) == Py_None) {
 		SET_INVALID(self->signal, self->signal_size);
 	} else if (!PyLong_Check(val)) {
 		PyErr_SetString(PyExc_ValueError, "Argument has to be an integer.");
 		return nullptr;
-	} else if( _PyLong_AsByteArray(val, self->signal, self->signal_size, 1, self->is_signed)) {
+	} else if(_PyLong_AsByteArray(val, self->signal, self->signal_size, 1, self->is_signed)) {
     	return nullptr;
     }
 
@@ -91,8 +105,7 @@ SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args)
 }
 
 static PyObject *
-SignalMemProxy_onChangeAdd(SignalMemProxy_t* self, PyObject* args)
-{
+SignalMemProxy_onChangeAdd(SignalMemProxy_t* self, PyObject* args) {
     PyObject * cb = nullptr;
 	if(!PyArg_ParseTuple(args, "O", &cb)) {
 		return nullptr;
@@ -107,15 +120,11 @@ SignalMemProxy_onChangeAdd(SignalMemProxy_t* self, PyObject* args)
     return Py_None;
 }
 
-void
-SignalMemProxy_cache_value(SignalMemProxy_t* self)
-{
+void SignalMemProxy_cache_value(SignalMemProxy_t* self) {
     memcpy(self->value_cache, self->signal, self->signal_size);
 }
 
-bool
-SignalMemProxy_value_changed(SignalMemProxy_t* self)
-{
+bool SignalMemProxy_value_changed(SignalMemProxy_t* self) {
     return memcmp(self->value_cache, self->signal, self->signal_size) != 0;
 }
 
@@ -138,9 +147,12 @@ SignalMemProxy_dealloc(SignalMemProxy_t* self)
 
 
 static PyMethodDef SignalMemProxy_methods[] = {
-        {"read", (PyCFunction)SignalMemProxy_read, METH_NOARGS, "read value from signal"},
-        {"write", (PyCFunction)SignalMemProxy_write, METH_VARARGS, "write value to signal (signal can not be read only)"},
-		{"registerOnChangeCallback", (PyCFunction)SignalMemProxy_onChangeAdd, METH_VARARGS, "add onChange callback function for this signal"},
+        {"read", (PyCFunction)SignalMemProxy_read, METH_NOARGS,
+        		"read value from signal"},
+        {"write", (PyCFunction)SignalMemProxy_write, METH_VARARGS,
+        		"write value to signal (signal can not be read only)"},
+		{"registerOnChangeCallback", (PyCFunction)SignalMemProxy_onChangeAdd, METH_VARARGS,
+				"add onChange callback function for this signal"},
         {nullptr}  /* Sentinel */
 };
 

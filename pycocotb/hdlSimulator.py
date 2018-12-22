@@ -98,23 +98,22 @@ from heapq import heappush, heappop
 from typing import Tuple
 
 from pycocotb.triggers import Event, raise_StopSimulation, Timer, \
-    StopSimumulation, PRIORITY_URGENT, PRIORITY_NORMAL, ReadOnly, \
-    WriteOnly
+    StopSimumulation, PRIORITY_URGENT, ReadOnly, \
+    WriteOnly, CombStable, AllStable
 from inspect import isgenerator
+from enum import Enum
 
 
 # [TODO] use c++ red-black tree
 # internal
 class CalendarItem():
 
-    def __init__(self, time: int, sub_step: int, priority: int, value):
+    def __init__(self, time: int, priority: int, value):
         """
         :param time: time when this event this list of event should be evoked
-        :param sub_step: index of delta step in this time
-            (there is read/write phase cycle to settle values down)
         :param priority: priority as described in this file
         """
-        self.key = (time, sub_step, priority)
+        self.key = (time, priority)
         self.value = value
 
     def __lt__(self, other):
@@ -130,8 +129,8 @@ class SimCalendar():
     def __init__(self):
         self._q = []
 
-    def push(self, time: int, step_no: int, priority: int, value):
-        item = CalendarItem(time, step_no, priority, value)
+    def push(self, time: int, priority: int, value):
+        item = CalendarItem(time, priority, value)
         heappush(self._q, item)
 
     def top(self):
@@ -147,11 +146,8 @@ class SimCalendar():
 class HdlSimulator():
     """
     This simulator simulates the communication between circuit simulator
-    and simulation processes which are driving the simulation.
+    and simulation processes which are driving the circuit simulation.
     Simulation processes are usually provided by simulation agents or user.
-
-    .. note: *Delta steps*
-        Delta step is minimum quantum of changes in simulation.
 
     :ivar now: actual simulation time
     :ivar _events: heap of simulation events and processes
@@ -162,7 +158,6 @@ class HdlSimulator():
         super(HdlSimulator, self).__init__()
         self.rtl_simulator = rtl_simulator
         self.now = 0
-
         # container of outputs for every process
         self._events = SimCalendar()
 
@@ -173,13 +168,13 @@ class HdlSimulator():
         """
         self._events.push(self.now, priority, proc)
 
-    def _run_process(self, process, step_no, priority, schedule):
+    def _run_process(self, process, priority, schedule):
         # run process or activate processes dependent on Event
         for ev in process:
             # if process requires waiting put it back in queue
             if isinstance(ev, Timer):
                 # put process to sleep as required by Timer event
-                schedule(self.now + ev.time, 0, priority, process)
+                schedule(self.now + ev.time, ev.priority, process)
                 break
             elif isinstance(ev, Event):
                 # process going to wait for event
@@ -196,10 +191,8 @@ class HdlSimulator():
                 p = ev.PRIORITY
                 if p == priority:
                     continue
-                elif priority < p:
-                    step_no += 1
 
-                schedule(self.now, step_no, ev.PRIORITY, process)
+                schedule(self.now, ev.PRIORITY, process)
                 break
 
     def run(self, until: int, extraProcesses=[]) -> None:
@@ -217,50 +210,70 @@ class HdlSimulator():
         if until == self.now:
             return
 
-        schedule = self._events.push
-        # def schedule(*args):
-        #     assert self.now <= args[0]
-        #     print(self.now, "sched:", *args)
-        #     self._events.push(*args)
+        # schedule = self._events.push
+        def schedule(*args):
+            assert self.now <= args[0]
+            print(self.now, "sched:", *args)
+            self._events.push(*args)
 
         next_event = self._events.pop
         top_event = self._events.top
 
         WrP = WriteOnly.PRIORITY
-        now, step_no, priority = (self.now, 0, WrP)
+        now, priority = (self.now, WrP)
         # add handle to stop simulation
-        schedule(now + until, 0, PRIORITY_URGENT, raise_StopSimulation(self))
+        schedule(now + until, PRIORITY_URGENT, raise_StopSimulation(self))
 
         rtl_sim = self.rtl_simulator
         rtl_pending_event_list = rtl_sim._pending_event_list
+
+        COMB_UPDATE_DONE = rtl_sim._COMB_UPDATE_DONE
+        COMB_UPDATE = COMB_UPDATE_DONE - 1
+        BEFORE_EDGE = rtl_sim._BEFORE_EDGE
+        END_OF_STEP = rtl_sim._END_OF_STEP
+        PRIORITY_TO_STATE = {
+            WriteOnly.PRIORITY: COMB_UPDATE,
+            ReadOnly.PRIORITY: COMB_UPDATE_DONE,
+            CombStable.PRIORITY: COMB_UPDATE_DONE,
+            AllStable.PRIORITY: END_OF_STEP,
+        }
+        rtlState = COMB_UPDATE
+        #rtlStateDirty = False
         try:
             # for all events
             while True:
-                next_now, next_step_no, next_priority, _ = top_event()
-                # if there was an update of circuit
-                eval_circuit = (priority == WrP 
-                                and (next_now > self.now
-                                     or step_no > next_step_no
-                                     or next_priority != WrP)
-                                )
-                if eval_circuit:
-                    while True:
-                        # use while because we are resolving combinational loops
-                        # between event callback and rtl_simulator
-                        eval_end_t = rtl_sim._eval()
+                _, next_priority, _ = top_event()
+                # if there was an update of IO of circuit perform update
+                required_state = PRIORITY_TO_STATE[next_priority]
+                #if next_priority == WriteOnly.PRIORITY:
+                #    rtlStateDirty = True
 
-                        if rtl_pending_event_list:
-                            for _process in rtl_pending_event_list:
-                                if not isgenerator(_process):
-                                    _process = _process(self)
+                if rtlState == END_OF_STEP:
+                    rtl_sim._set_write_only()
+                    rtlState = COMB_UPDATE
 
-                                self._run_process(_process, 0, PRIORITY_NORMAL, schedule)
-                            rtl_pending_event_list.clear()
+                while rtlState != required_state:
+                    # use while because we are resolving combinational loops
+                    # between event callback and rtl_simulator
+                    eval_end_t = rtl_sim._eval()
 
-                        if eval_end_t == rtl_sim._END_OF_STEP:
-                            break
+                    if rtl_pending_event_list:
+                        # proper solution is to put triggered events to sim.
+                        # calendar with urgent priority  but we evaluate
+                        # it directly because of performance
+                        for _process in rtl_pending_event_list:
+                            if not isgenerator(_process):
+                                _process = _process(self)
 
-                now, step_no, priority, process = next_event()
+                            self._run_process(_process, WriteOnly.PRIORITY, schedule)
+                        rtl_pending_event_list.clear()
+
+                    if eval_end_t == COMB_UPDATE_DONE:
+                        rtlState = COMB_UPDATE_DONE
+                    elif eval_end_t == END_OF_STEP:
+                        rtlState = END_OF_STEP
+
+                now, priority, process = next_event()
                 assert now >= self.now, (now, process)
                 rtl_sim._time = self.now = now
 
@@ -268,7 +281,7 @@ class HdlSimulator():
                 if isinstance(process, Event):
                     process = iter(process)
 
-                self._run_process(process, step_no, priority, schedule)
+                self._run_process(process, priority, schedule)
 
         except StopSimumulation:
             return
@@ -277,5 +290,5 @@ class HdlSimulator():
         """
         Add process to events with default priority on current time
         """
-        self._events.push(self.now, 0, PRIORITY_NORMAL, proc)
+        self._events.push(self.now, WriteOnly.PRIORITY, proc)
 

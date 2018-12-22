@@ -45,6 +45,7 @@ struct PySim_t {
     std::vector<SignalMemProxy_t*> * signals;
     // set of singals which have sim. process which waits on event on this signal
     std::unordered_set<SignalMemProxy_t*> * event_triggering_signals;
+    bool read_only_not_write_only;
     // VCD writter
     VerilatedVcdC* tfp;
     // VCD file name
@@ -92,14 +93,16 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
             return nullptr;
         }
         self->actual_sim_step = nullptr;
+        self->read_only_not_write_only = false;
 
         SignalMemProxy_t *proxy = nullptr;
-    {% for signal_name, read_only, is_signed, type_info in accessible_signals %}
+    {% for signal_name, read_only, is_signed, type_width in accessible_signals %}
         Py_INCREF((PyObject*)&SignalMemProxy_pytype);
         proxy =(SignalMemProxy_t *) PyObject_CallObject((PyObject*)&SignalMemProxy_pytype, nullptr);
         SignalMemProxy_c_init(proxy, true,
                 reinterpret_cast<uint8_t*>(&self->dut->{{signal_name}}),
-                {{type_info}}, {{is_signed}}, "{{signal_name}}", self->event_triggering_signals);
+                {{type_width}}, {{is_signed}}, "{{signal_name}}", self->event_triggering_signals,
+				&self->read_only_not_write_only);
         self->signals->push_back(proxy);
 
     {% endfor %}
@@ -178,10 +181,11 @@ static void PySim_eval_event_triggers(PySim_t* self) {
 }
 
 static PyObject * PySim_restart_eval(PySim_t* self, PyObject* args) {
-	if(!PyArg_ParseTuple(args, "")) {
-		return nullptr;
+	if (self->actual_sim_step) {
+		delete self->actual_sim_step;
+		self->actual_sim_step = nullptr;
+		self->read_only_not_write_only = false;
 	}
-	
     Py_INCREF(Py_None);
     return Py_None;
 }
@@ -192,12 +196,15 @@ static PyObject * PySim_eval(PySim_t* self, PyObject* args) {
     } else {
         restart_simulation_deltastep(self);
     }
+    self->read_only_not_write_only = true;
+
     // Dump trace data for this step
     if (self->tfp)
         self->tfp->dump(self->time);
+    
     PySim_eval_event_triggers(self);
-
-    return PyLong_FromLong(self->actual_sim_step->get().first);
+    auto end_type = self->actual_sim_step->get().first;
+    return PyLong_FromLong(end_type);
 }
 
 static PyObject * PySim_set_trace_file(PySim_t* self, PyObject* args) {
@@ -225,6 +232,12 @@ static PyObject * PySim_set_trace_file(PySim_t* self, PyObject* args) {
     return Py_None;
 }
 
+static PyObject * PySim_set_write_only(PySim_t* self, PyObject* args) {
+    self->read_only_not_write_only = false;
+	Py_INCREF(Py_None);
+    return Py_None;	
+}
+
 static PyMethodDef PySim_methods[] = {
         {"_eval", (PyCFunction)PySim_eval, METH_NOARGS, "single simulation step"},
 		{"_restart_eval", (PyCFunction)PySim_restart_eval, METH_NOARGS, "restart evaluation"},
@@ -234,6 +247,8 @@ static PyMethodDef PySim_methods[] = {
                 ":param file_name: name of file where trace should be stored (path of vcd file f.e.)\n"
                 ":param trace_depth: number of hyerarchy levels which should be trraced (-1 = all)\n"
         },
+		{"_set_write_only", (PyCFunction)PySim_set_write_only, METH_NOARGS,
+				"set simulation to write only state, should be called before entering to new evaluation step"},
         {nullptr}  /* Sentinel */
 };
 

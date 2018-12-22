@@ -7,13 +7,14 @@ from setuptools.command.build_ext import build_ext
 from setuptools.dist import Distribution
 from subprocess import check_call
 import sys
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from jinja2.environment import Environment
 from jinja2.loaders import PackageLoader
 
 from pycocotb.verilator.ccompiler_tweaks import monkey_patch_parallel_compilation
 from pycocotb.verilator.fs_utils import find_files, working_directory
+
 
 COCOPY_SRC_DIR = os.path.join(os.path.dirname(__file__), "c_files")
 COCOPY_SRCS = [os.path.join(COCOPY_SRC_DIR, "signal_mem_proxy.cpp"), ]
@@ -55,7 +56,8 @@ def generatePythonModuleWrapper(
         top_name: str, top_unique_name: str,
         build_dir: str,
         verilator_include_dir: str,
-        accessible_signals, thread_pool: ThreadPool,
+        accessible_signals: List[Tuple[str, bool, bool, int]],
+        thread_pool: ThreadPool,
         extra_Extension_args: Dict[str, object]=DEFAULT_EXTENSION_EXTRA_ARGS):
     """
     Collect all c/c++ files into setuptools.Extension and build it
@@ -64,6 +66,9 @@ def generatePythonModuleWrapper(
     :param top_unique_name: unique name used as name for simulator module
     :param build_dir: tmp directory where simulation should be build
     :param verilator_include_dir: include directory of Verilator
+    :param accessible_signals: List of tuples (signal_name, read_only, is_signed, type_width)
+    :param thread_pool: thread pool used for build
+    :param extra_Extension_args: additional values for setuptools.Extension constructor
 
     :return: file name of builded module (.so/.dll file)
     """

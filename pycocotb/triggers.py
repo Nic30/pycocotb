@@ -30,33 +30,43 @@ def raise_StopSimulation(sim):
     yield
 
 
-class Timer(object):
-    """
-    Container for wait time of processes
-
-    next activation of process will be now + time
-    """
-
-    def __init__(self, time):
-        self.time = time
-
-    def __repr__(self):
-        return "<Timer %r>" % (self.time)
-
-
 PRIORITY_URGENT = 0
-PRIORITY_NORMAL = PRIORITY_URGENT + 1
 
 
 class SimStep(object):
     pass
 
 
-class ReadOnly(SimStep):
-    PRIORITY = PRIORITY_NORMAL
-    pass
-
-
 class WriteOnly(SimStep):
-    PRIORITY = PRIORITY_NORMAL + 1
+    PRIORITY = PRIORITY_URGENT + 1
     pass
+
+
+class ReadOnly(SimStep):
+    PRIORITY = WriteOnly.PRIORITY + 1
+    pass
+
+
+class CombStable(SimStep):
+    PRIORITY = ReadOnly.PRIORITY + 1
+    pass
+
+
+class AllStable(SimStep):
+    PRIORITY = CombStable.PRIORITY + 1
+    pass
+
+
+class Timer():
+    """
+    Container for wait time of processes
+
+    next activation of process will be now + time
+    """
+
+    def __init__(self, time, priority=WriteOnly.PRIORITY):
+        self.time = time
+        self.priority = priority
+
+    def __repr__(self):
+        return "<Timer %r>" % (self.time)
