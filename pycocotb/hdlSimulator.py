@@ -70,38 +70,38 @@ Pitfalls of delta-step based HDL simulators
 
 * (Event names written in capital)
 
-def delta_step():
-    * PRESET - write only
-    * RTL simulator eval() call
-        * combinational update                     -|
-        * COMB_UPDATE - read only                   | Care for comb. loops
-        * COMB_REWRITE - write only                 | in sim. agents
-        * rerun eval() if write was used            |
-        * COMB_STABLE - read only                  -|
-        * check for event on signals driven by sim -| Care for sim. driven events
-        * for each clock signal:
-            * BEFORE_EDGE(clk) - read only                  -| Care for clock
-            * for each start of evaluation                   | dependent agents
-              of event dependent code                        | where clock is generated
-              (clock sig. updated but none of the registers)-| from circuit
-    * END_OF_STEP - read only                    -| Final state resolution
+    def delta_step():
+        #RTL simulator eval() call
+            #while update:                                -|
+                #WRITE_ONLY                                | Care for comb. loops
+                #READ_ONLY                                 | in sim. agents
+                #rerun eval() if write was used            |
+                #check for event on signals driven by sim  |  -| Care for sim. driven events
+            #COMB_STABLE - read only                      -|
+            #for each triggered edge dependent statement block:
+                #BEFORE_EDGE(clk) - read only                  -| Care for clock
+                #for each start of evaluation                   | dependent agents
+                #of event dependent code                        | where clock is generated
+                #(clock sig. updated but none of the registers)-| from circuit
+        #END_OF_STEP - read only                    -| Final state resolution
 
 # Run of the simulator:
-
-* eval_init()
-* END_OF_STEP - read only
-* while True:
-    * delta_step()
+    while True:
+        delta_step()
 """
 
 from heapq import heappush, heappop
-from typing import Tuple
+from typing import Tuple, Optional
 
 from pycocotb.triggers import Event, raise_StopSimulation, Timer, \
     StopSimumulation, PRIORITY_URGENT, ReadOnly, \
-    WriteOnly, CombStable, AllStable
+    WriteOnly, CombStable, AllStable, AfterWriteOnly, FinishRtlSim, AfterStep,\
+    SimStep, AfterReadOnly
 from inspect import isgenerator
-from enum import Enum
+
+
+class ReevalRtlEvents(Exception):
+    pass
 
 
 # [TODO] use c++ red-black tree
@@ -171,6 +171,17 @@ class HdlSimulator():
         self.now = 0
         # container of outputs for every process
         self._events = SimCalendar()
+        self._writeOnlyEv = None
+        self._readOnlyEv = None
+        self._combStableEv = None
+        self._allStableEv = None
+
+        schedule = self._events.push
+        #def schedule(*args):
+        #    assert self.now <= args[0]
+        #    print(self.now, "sched:", *args)
+        #    self._events.push(*args)
+        self.schedule = schedule
 
     # internal
     def _add_process(self, proc, priority) -> None:
@@ -179,32 +190,41 @@ class HdlSimulator():
         """
         self._events.push(self.now, priority, proc)
 
-    def _run_process(self, process, priority, schedule):
+    def _run_process(self, process, actualPriority):
+        """
+        :param actualPriority: priority of actually evaluated process
+        """
         # run process or activate processes dependent on Event
         for ev in process:
             # if process requires waiting put it back in queue
             if isinstance(ev, Timer):
                 # put process to sleep as required by Timer event
-                schedule(self.now + ev.time, ev.priority, process)
+                self.schedule(self.now + ev.time, PRIORITY_URGENT, process)
                 break
             elif isinstance(ev, Event):
-                # process going to wait for event
-                # if ev.process_to_wake is None event was already
-                # destroyed
+                # reschedule with different priority
                 ev.process_to_wake.append(process)
                 break
             elif isgenerator(ev):
                 # else this process spotted new process
                 # and it has to be put in queue
-                schedule(self.now, priority, ev)
+                self.schedule(self.now, actualPriority, ev)
             else:
-                # process is going to wait on different simulation step
-                p = ev.PRIORITY
-                if p == priority:
-                    continue
+                raise NotImplementedError(ev)
 
-                schedule(self.now, ev.PRIORITY, process)
-                break
+    def evalRtlEvents(self, parentPriotiry: int):
+        rtl_sim = self.rtl_simulator
+        rtl_pending_event_list = rtl_sim._pending_event_list
+        if rtl_pending_event_list:
+            # proper solution is to put triggered events to sim.
+            # calendar with urgent priority  but we evaluate
+            # it directly because of performance
+            for _process in rtl_pending_event_list:
+                if not isgenerator(_process):
+                    _process = _process(self)
+
+                self._run_process(_process, parentPriotiry)
+            rtl_pending_event_list.clear()
 
     def run(self, until: int, extraProcesses=[]) -> None:
         """
@@ -221,113 +241,117 @@ class HdlSimulator():
         if until == self.now:
             return
 
-        # schedule = self._events.push
-        def schedule(*args):
-            assert self.now <= args[0]
-            print(self.now, "sched:", *args)
-            self._events.push(*args)
-
         next_event = self._events.pop
-        top_event = self._events.top
 
         WrP = WriteOnly.PRIORITY
         now, priority = (self.now, WrP)
         # add handle to stop simulation
-        schedule(now + until, PRIORITY_URGENT, raise_StopSimulation(self))
+        self.schedule(now + until, PRIORITY_URGENT, raise_StopSimulation(self))
 
         rtl_sim = self.rtl_simulator
-        rtl_pending_event_list = rtl_sim._pending_event_list
-
-        COMB_UPDATE_DONE = rtl_sim._COMB_UPDATE_DONE
-        COMB_UPDATE = COMB_UPDATE_DONE - 1
-        BEFORE_EDGE = rtl_sim._BEFORE_EDGE
-        END_OF_STEP = rtl_sim._END_OF_STEP
-        PRIORITY_TO_STATE = {
-            WriteOnly.PRIORITY: COMB_UPDATE,
-            ReadOnly.PRIORITY: COMB_UPDATE_DONE,
-            CombStable.PRIORITY: COMB_UPDATE_DONE,
-            AllStable.PRIORITY: END_OF_STEP,
-            PRIORITY_URGENT: END_OF_STEP,  # [TODO] now used only for end of sim.
-        }
-        STATE_TO_PRIORITY = {
-            COMB_UPDATE: WriteOnly.PRIORITY,
-            COMB_UPDATE_DONE: ReadOnly.PRIORITY,
-            END_OF_STEP: AllStable.PRIORITY,
-        }
 
         # state of RTL simulator is beeing updated and updates are pending
-        rtlState = COMB_UPDATE
-        rtlStateDirty = True
-        lastRtlUpdateFinishTime = self.now - 1
         try:
             # for all events
             while True:
-                try:
-                    print(self.now)
-                    next_time, next_priority, _ = top_event()
-                    # if there was an update of IO of circuit perform update
-                    required_state = PRIORITY_TO_STATE[next_priority]
+                now, priority, process = next_event()
+                # print(now, priority, process)
+                assert now >= self.now, (now, process)
+                rtl_sim._time = self.now = now
 
-                    while rtlState != required_state or (
-                            rtlStateDirty and next_time > now):
-                        # use while because we are resolving combinational loops
-                        # between event callback and rtl_simulator
-                        eval_end_t = rtl_sim._eval()
-                        print("eval", eval_end_t)
-                        do_recheckTopEv = False
-                        if rtl_pending_event_list:
-                            # proper solution is to put triggered events to sim.
-                            # calendar with urgent priority  but we evaluate
-                            # it directly because of performance
-                            for _process in rtl_pending_event_list:
-                                if not isgenerator(_process):
-                                    _process = _process(self)
+                # process is Python generator or Event
+                if isinstance(process, Event):
+                    for p in process:
+                        self._run_process(p, priority)
 
-                                self._run_process(_process, STATE_TO_PRIORITY[rtlState], schedule)
-                            rtl_pending_event_list.clear()
-                            do_recheckTopEv = True
+                    if process.afterCb is not None:
+                        process.afterCb()
+                else:
+                    self._run_process(process, priority)
 
-                        if eval_end_t == COMB_UPDATE_DONE:
-                            rtlState = COMB_UPDATE_DONE
-                        elif eval_end_t == END_OF_STEP:
-                            rtlState = END_OF_STEP
-                            rtlStateDirty = False
-                            assert lastRtlUpdateFinishTime < self.now, ("Simulator hang in ", self.now)
-                            lastRtlUpdateFinishTime = self.now
-                            if next_time > now:
-                                # reset the simulation step if noone is waition on finish
-
-                                # if top event changed
-                                tmp = top_event()
-                                if tmp[0] != next_time:
-                                    do_recheckTopEv = True
-                                else:
-                                    print("step restart")
-                                    rtl_sim._set_write_only()
-                                    rtlState = COMB_UPDATE
-
-                            break
-
-                        if do_recheckTopEv:
-                            print("recheck")
-                            raise RecheckTopEvent()
-
-                    if next_priority == WriteOnly.PRIORITY:
-                        rtlStateDirty = True
-
-                    now, priority, process = next_event()
-                    assert now >= self.now, (now, process)
-                    rtl_sim._time = self.now = now
-
-                    # process is Python generator or Event
-                    if isinstance(process, Event):
-                        process = iter(process)
-                    
-                    self._run_process(process, priority, schedule)
-                except RecheckTopEvent:
-                    continue
         except StopSimumulation:
             return
+
+    def waitWriteOnly(self):
+        e = self._writeOnlyEv
+        if e is None:
+            e = self._writeOnlyEv = Event("WriteOnly")
+            e.afterCb = self.onAfterWriteOnly
+            self.schedule(self.now, WriteOnly.PRIORITY, e)
+            #self.schedule(self.now, AfterWriteOnly.PRIORITY, self.onAfterWriteOnly())
+
+        return e
+
+    def onAfterWriteOnly(self):
+        self._writeOnlyEv = None
+        sim = self.rtl_simulator
+        s = sim._eval()
+        assert s == sim._COMB_UPDATE_DONE
+        self.evalRtlEvents(WriteOnly.PRIORITY)
+        # spot ReadOnly event without waiting on it
+        self.waitReadOnly()
+        #return
+        #yield
+
+    def waitReadOnly(self):
+        e = self._readOnlyEv
+        if e is None:
+            e = self._readOnlyEv = Event("ReadOnly")
+            e.afterCb = self.onAfterReadOnly
+            self.schedule(self.now, ReadOnly.PRIORITY, e)
+            #self.schedule(self.now, AfterReadOnly.PRIORITY, self.onAfterReadOnly())
+
+        return e
+
+    def onAfterReadOnly(self):
+        self._readOnlyEv = None
+        if self._writeOnlyEv is not None:
+            # if write in this timestamp is required we have to reevaluate
+            # the combinational logic
+            self.rtl_simulator._reset_eval()
+        self.waitCombStable()
+        #return
+        #yield
+
+    def waitCombStable(self):
+        e = self._combStableEv
+        if e is None:
+            e = self._combStableEv = Event("CombStable")
+            e.afterCb = self.onFinishRtlSim
+            self.schedule(self.now, CombStable.PRIORITY, e)
+            #self.schedule(self.now, FinishRtlSim.PRIORITY, self.onFinishRtlSim())
+
+        return e
+
+    def onFinishRtlSim(self):
+        self._combStableEv = None
+        sim = self.rtl_simulator
+        END = sim._END_OF_STEP
+        _eval = sim._eval
+        while _eval() != END:
+            if sim._pending_event_list:
+                self.evalRtlEvents(AllStable.PRIORITY)
+
+        self.waitAllStable()
+        #return
+        #yield
+
+    def waitAllStable(self):
+        e = self._allStableEv
+        if e is None:
+            e = self._allStableEv = Event("AllStable")
+            e.afterCb = self.onAfterStep
+            self.schedule(self.now, AllStable.PRIORITY, e)
+            #self.schedule(self.now, AfterStep.PRIORITY, self.onAfterStep())
+
+        return AllStable
+
+    def onAfterStep(self):
+        self._allStableEv = None
+        self.rtl_simulator._set_write_only()
+        #print("end of step")
+        #return
+        #yield
 
     def add_process(self, proc) -> None:
         """

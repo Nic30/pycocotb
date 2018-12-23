@@ -59,6 +59,7 @@ class OnRisingCallbackLoop(CallbackLoop):
     """
 
     def onWriteCallback(self, sim):
+        yield sim.waitReadOnly()
         if self._enable and self.shouldBeEnabledFn() and int(self.sig.read()) == 1:
             if self.isGenerator:
                 yield from self.fn(sim)
@@ -73,6 +74,7 @@ class OnFallingCallbackLoop(CallbackLoop):
     """
 
     def onWriteCallback(self, sim):
+        yield sim.waitReadOnly()
         if self._enable and self.shouldBeEnabledFn()\
                 and int(self.sig.read()) == 0:
             if self.isGenerator:
@@ -87,18 +89,19 @@ def oscilate(sig, period=CLK_PERIOD, initWait=0):
     (usually used as clk generator)
     """
 
-    def oscillateStimul(s):
-        s.write(False, sig)
+    def oscillateStimul(sim):
+        yield sim.waitWriteOnly()
+        sig.write(0)
         halfPeriod = period / 2.0
         yield Timer(initWait)
 
         while True:
-            yield s.wait(halfPeriod)
-            yield WriteOnly
-            s.write(True, sig)
+            yield Timer(halfPeriod)
+            yield sim.waitWriteOnly()
+            sig.write(1)
 
             yield Timer(halfPeriod)
             yield WriteOnly
-            s.write(False, sig)
+            sig.write(0)
 
     return oscillateStimul
