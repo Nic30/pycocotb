@@ -38,23 +38,58 @@ class SimStep(object):
 
 
 class WriteOnly(SimStep):
+    """
+    Start of evaluation of RTL simulator, in this phase
+    only write is allowed
+    """
     PRIORITY = PRIORITY_URGENT + 1
-    pass
+
+
+class _WriteOnlyToReadOnlyTransition(SimStep):
+    """
+    RTL simulation performes the evaluation of combinational logic
+    """
+    PRIORITY = WriteOnly.PRIORITY + 1
 
 
 class ReadOnly(SimStep):
+    """
+    Update of combinational logic was performed and now
+    it is posible to read values and wait again on WriteOnly to update
+    circuit again
+    """
     PRIORITY = WriteOnly.PRIORITY + 1
-    pass
+
+
+class _CombLogicReevalCheck(SimStep):
+    """
+    Simulator check if input of combinational logic was altered and
+    RTL simulation should be revaluated before evaluation of event
+    dependent events
+    """
+    PRIORITY = ReadOnly.PRIORITY + 1
 
 
 class CombStable(SimStep):
-    PRIORITY = ReadOnly.PRIORITY + 1
-    pass
+    """
+    Combinational logic is stable and no update update
+    of any IO is allowed on this timestamp
+    """
+    PRIORITY = CombStable.PRIORITY + 1
 
 
 class AllStable(SimStep):
+    """
+    All values in circuit are stable for this timestamp
+    """
     PRIORITY = CombStable.PRIORITY + 1
-    pass
+
+
+class _EndOfStepToNewStepTransition(SimStep):
+    """
+    Simulation state is set to start of new step
+    """
+    PRIORITY = AllStable.PRIORITY + 1
 
 
 class Timer():
