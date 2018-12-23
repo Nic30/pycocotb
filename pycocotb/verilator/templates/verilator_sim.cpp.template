@@ -157,7 +157,7 @@ static void call_eval_sim(sim_step_t::push_type &sink, {{top_name}}_wrap * sim) 
 }
 
 
-static void restart_simulation_deltastep(PySim_t *self) {
+static void reset_simulation_deltastep(PySim_t *self) {
     using std::placeholders::_1;
     if (self->actual_sim_step)
         delete self->actual_sim_step;
@@ -180,7 +180,7 @@ static void PySim_eval_event_triggers(PySim_t* self) {
     }
 }
 
-static PyObject * PySim_restart_eval(PySim_t* self, PyObject* args) {
+static PyObject * PySim_reset_eval(PySim_t* self, PyObject* args) {
 	if (self->actual_sim_step) {
 		delete self->actual_sim_step;
 		self->actual_sim_step = nullptr;
@@ -194,7 +194,7 @@ static PyObject * PySim_eval(PySim_t* self, PyObject* args) {
     if (self->actual_sim_step) {
     	(*(self->actual_sim_step))();
     } else {
-        restart_simulation_deltastep(self);
+        reset_simulation_deltastep(self);
     }
     self->read_only_not_write_only = true;
 
@@ -240,7 +240,7 @@ static PyObject * PySim_set_write_only(PySim_t* self, PyObject* args) {
 
 static PyMethodDef PySim_methods[] = {
         {"_eval", (PyCFunction)PySim_eval, METH_NOARGS, "single simulation step"},
-		{"_restart_eval", (PyCFunction)PySim_restart_eval, METH_NOARGS, "restart evaluation"},
+		{"_reset_eval", (PyCFunction)PySim_reset_eval, METH_NOARGS, "reset evaluation"},
         {"_set_trace_file", (PyCFunction)PySim_set_trace_file, METH_VARARGS,
                 "set file where data from signals should be stored\n"
                 "\n"
