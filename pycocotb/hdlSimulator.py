@@ -91,12 +91,11 @@ Pitfalls of delta-step based HDL simulators
 """
 
 from heapq import heappush, heappop
-from typing import Tuple, Optional
+from typing import Tuple
 
 from pycocotb.triggers import Event, raise_StopSimulation, Timer, \
     StopSimumulation, PRIORITY_URGENT, ReadOnly, \
-    WriteOnly, CombStable, AllStable, AfterWriteOnly, FinishRtlSim, AfterStep,\
-    SimStep, AfterReadOnly
+    WriteOnly, CombStable, AllStable
 from inspect import isgenerator
 
 
