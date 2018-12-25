@@ -186,8 +186,8 @@ static PyObject * PySim_reset_eval(PySim_t* self, PyObject* args) {
 		self->actual_sim_step = nullptr;
 		self->read_only_not_write_only = false;
 	}
-    Py_INCREF(Py_None);
-    return Py_None;
+
+	Py_RETURN_NONE;
 }
 
 static PyObject * PySim_eval(PySim_t* self, PyObject* args) {
@@ -228,14 +228,13 @@ static PyObject * PySim_set_trace_file(PySim_t* self, PyObject* args) {
         self->tfp->open(self->trace_file_name);  // Open the dump file
     }
 
-    Py_INCREF(Py_None);
-    return Py_None;
+	Py_RETURN_NONE;
 }
 
 static PyObject * PySim_set_write_only(PySim_t* self, PyObject* args) {
     self->read_only_not_write_only = false;
-	Py_INCREF(Py_None);
-    return Py_None;	
+
+	Py_RETURN_NONE;
 }
 
 static PyMethodDef PySim_methods[] = {
