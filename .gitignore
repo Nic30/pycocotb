@@ -1,3 +1,8 @@
+*.pyc
+*.so
+*.a
+*.o
+
 # eclipse project
 .project
 .pydevproject

@@ -14,6 +14,8 @@ from jinja2.loaders import PackageLoader
 
 from pycocotb.verilator.ccompiler_tweaks import monkey_patch_parallel_compilation
 from pycocotb.verilator.fs_utils import find_files, working_directory
+from copy import deepcopy
+from distutils.sysconfig import get_config_var
 
 
 COCOPY_SRC_DIR = os.path.join(os.path.dirname(__file__), "c_files")
@@ -27,9 +29,35 @@ template_env = Environment(
 )
 verilator_sim_wrapper_template = template_env.get_template(
     'verilator_sim.cpp.template')
+
+# "cpython-36m-x86_64-linux-gnu"
+SOABI = get_config_var("SOABI")
+# e.g. "linux"
+MACHDEP = get_config_var("MACHDEP")
+# e.g. "x86_64"
+AR = get_config_var("AR").split("-")[0]
+# e.g. "3.6"
+VERSION = get_config_var("VERSION")
+
+IN_PLACE_LIB_DIR = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "build",
+        "lib.%s-%s-%s" % (MACHDEP, AR, VERSION),
+        "pycocotb",
+        "verilator"))
+INSTALLED_LIB_DIR = os.path.join(os.path.dirname(__file__))
+
+
 DEFAULT_EXTENSION_EXTRA_ARGS = {
     "extra_compile_args": ['-std=c++17'],
-    "libraries": ["boost_coroutine", "boost_context", "boost_system"]
+    "libraries": ["boost_coroutine", "boost_context", "boost_system",
+                  "common." + SOABI],
+    "include_dirs": [VERILATOR_INCLUDE_DIR, COCOPY_SRC_DIR],
+    "language": "c++",
+    "library_dirs": [IN_PLACE_LIB_DIR, INSTALLED_LIB_DIR]
 }
 
 
@@ -43,19 +71,14 @@ def verilatorCompile(files: List[str], build_dir: str):
         raise
 
 
-def getSrcFiles(build_dir: str, verilator_include_dir: str):
+def getSrcFiles(build_dir: str):
     build_sources = find_files(build_dir, pattern="*.cpp", recursive=True)
-    verilator_sources = [
-        verilator_include_dir + "/" + x
-        for x in ["verilated.cpp", "verilated_save.cpp", "verilated_vcd_c.cpp"]
-    ]
-    return [*build_sources, *verilator_sources, *COCOPY_SRCS]
+    return [*build_sources]
 
 
 def generatePythonModuleWrapper(
         top_name: str, top_unique_name: str,
         build_dir: str,
-        verilator_include_dir: str,
         accessible_signals: List[Tuple[str, bool, bool, int]],
         thread_pool: ThreadPool,
         extra_Extension_args: Dict[str, object]=DEFAULT_EXTENSION_EXTRA_ARGS):
@@ -78,16 +101,17 @@ def generatePythonModuleWrapper(
                 module_name=top_unique_name,
                 top_name=top_name,
                 accessible_signals=accessible_signals))
-        sources = getSrcFiles(".", verilator_include_dir)
+        sources = getSrcFiles(".")
         with monkey_patch_parallel_compilation(thread_pool):
             dist = Distribution()
 
             dist.parse_config_files()
+
+            extra_Extension_args = deepcopy(extra_Extension_args)
+            extra_Extension_args["sources"] = extra_Extension_args.get("sources", []) + sources
+            extra_Extension_args["include_dirs"] = extra_Extension_args.get("include_dirs", []) + [build_dir, ]
+
             sim = Extension(top_unique_name,
-                            include_dirs=[verilator_include_dir,
-                                          build_dir, COCOPY_SRC_DIR],
-                            sources=sources,
-                            language="c++",
                             **extra_Extension_args,
                             )
 
