@@ -100,8 +100,7 @@ SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args) {
     	return nullptr;
     }
 
-    Py_INCREF(Py_None);
-    return Py_None;
+	Py_RETURN_NONE;
 }
 
 static PyObject *
@@ -116,8 +115,7 @@ SignalMemProxy_onChangeAdd(SignalMemProxy_t* self, PyObject* args) {
 	self->callbacks->push_back(cb);
 	self->signals_checked_for_change->insert(self);
 
-    Py_INCREF(Py_None);
-    return Py_None;
+	Py_RETURN_NONE;
 }
 
 void SignalMemProxy_cache_value(SignalMemProxy_t* self) {

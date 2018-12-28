@@ -1,3 +1,5 @@
+
+
 class StopSimumulation(BaseException):
     """
     Exception raised from handle in simulation to stop simulation
@@ -10,15 +12,29 @@ class Event():
     Simulation event
 
     Container of processes to wake
+
+    :param process_to_wake: list of sim. processes (generator instances)
+        to wake when this event is triggered
+
+    :param afterCb: callback function which is called after this event is resolved
     """
 
-    def __init__(self):
+    def __init__(self, debug_name=None):
+        self.debug_name = debug_name
         self.process_to_wake = []
+        self.afterCb = None
 
     def __iter__(self):
-        procs = iter(self.process_to_wake)
+        return iter(self.process_to_wake)
+
+    def destroy(self):
         self.process_to_wake = None
-        return procs
+
+    def __repr__(self):
+        if self.debug_name is None:
+            return super(Event, self).__repr__()
+        else:
+            return "<Event {} {:#018x}>".format(self.debug_name, id(self))
 
 
 def raise_StopSimulation(sim):
@@ -38,23 +54,60 @@ class SimStep(object):
 
 
 class WriteOnly(SimStep):
+    """
+    Start of evaluation of RTL simulator, in this phase
+    only write is allowed
+    """
     PRIORITY = PRIORITY_URGENT + 1
-    pass
+
+
+class AfterWriteOnly(SimStep):
+    """
+    Eval the circuit for combinational changes
+    """
+    PRIORITY = WriteOnly.PRIORITY + 1
 
 
 class ReadOnly(SimStep):
-    PRIORITY = WriteOnly.PRIORITY + 1
-    pass
+    """
+    Update of combinational logic was performed and now
+    it is posible to read values and wait again on WriteOnly to update
+    circuit again
+    """
+    PRIORITY = AfterWriteOnly.PRIORITY + 1
+
+
+class AfterReadOnly(SimStep):
+    PRIORITY = ReadOnly.PRIORITY + 1
 
 
 class CombStable(SimStep):
-    PRIORITY = ReadOnly.PRIORITY + 1
-    pass
+    """
+    Combinational logic is stable and no update update
+    of any IO is allowed on this timestamp
+    """
+    PRIORITY = AfterReadOnly.PRIORITY + 1
+
+
+class FinishRtlSim(SimStep):
+    """
+    Finish delta step of RTL simulation if required
+    """
+    PRIORITY = CombStable.PRIORITY + 1
 
 
 class AllStable(SimStep):
-    PRIORITY = CombStable.PRIORITY + 1
-    pass
+    """
+    All values in circuit are stable for this timestamp
+    """
+    PRIORITY = FinishRtlSim.PRIORITY + 1
+
+
+class AfterStep(SimStep):
+    """
+    Circuit simulator is restarted for next step
+    """
+    PRIORITY = AllStable.PRIORITY
 
 
 class Timer():
