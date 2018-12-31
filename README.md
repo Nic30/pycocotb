@@ -15,4 +15,9 @@ This allows better code reuse, integration with existing test frameworks and bet
 # Current state
 * pre-alfa
 * experimental Python <-> Verilator binding
- 
+
+
+# Similar software
+
+* [midas](https://github.com/ucb-bar/midas)
+* [firesim](https://github.com/firesim/firesim)
