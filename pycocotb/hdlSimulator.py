@@ -279,7 +279,6 @@ class HdlSimulator():
             e = self._writeOnlyEv = Event("WriteOnly")
             e.afterCb = self.onAfterWriteOnly
             self.schedule(self.now, WriteOnly.PRIORITY, e)
-            #self.schedule(self.now, AfterWriteOnly.PRIORITY, self.onAfterWriteOnly())
 
         return e
 
@@ -291,8 +290,6 @@ class HdlSimulator():
         self.evalRtlEvents(WriteOnly.PRIORITY)
         # spot ReadOnly event without waiting on it
         self.waitReadOnly()
-        #return
-        #yield
 
     def waitReadOnly(self):
         e = self._readOnlyEv
@@ -300,7 +297,6 @@ class HdlSimulator():
             e = self._readOnlyEv = Event("ReadOnly")
             e.afterCb = self.onAfterReadOnly
             self.schedule(self.now, ReadOnly.PRIORITY, e)
-            #self.schedule(self.now, AfterReadOnly.PRIORITY, self.onAfterReadOnly())
 
         return e
 
@@ -311,31 +307,29 @@ class HdlSimulator():
             # the combinational logic
             self.rtl_simulator._reset_eval()
         self.waitCombStable()
-        #return
-        #yield
 
     def waitCombStable(self):
         e = self._combStableEv
         if e is None:
             e = self._combStableEv = Event("CombStable")
-            e.afterCb = self.onFinishRtlSim
+            e.afterCb = self.onFinishRtlStep
             self.schedule(self.now, CombStable.PRIORITY, e)
-            #self.schedule(self.now, FinishRtlSim.PRIORITY, self.onFinishRtlSim())
 
         return e
 
-    def onFinishRtlSim(self):
+    def onFinishRtlStep(self):
         self._combStableEv = None
         sim = self.rtl_simulator
         END = sim._END_OF_STEP
         _eval = sim._eval
-        while _eval() != END:
+        while True:
+            ret = _eval()
             if sim._pending_event_list:
                 self.evalRtlEvents(AllStable.PRIORITY)
+            if ret == END:
+                break
 
         self.waitAllStable()
-        #return
-        #yield
 
     def waitAllStable(self):
         e = self._allStableEv
@@ -343,16 +337,12 @@ class HdlSimulator():
             e = self._allStableEv = Event("AllStable")
             e.afterCb = self.onAfterStep
             self.schedule(self.now, AllStable.PRIORITY, e)
-            #self.schedule(self.now, AfterStep.PRIORITY, self.onAfterStep())
 
         return AllStable
 
     def onAfterStep(self):
         self._allStableEv = None
         self.rtl_simulator._set_write_only()
-        #print("end of step")
-        #return
-        #yield
 
     def add_process(self, proc) -> None:
         """
