@@ -1,7 +1,7 @@
 # PyCOCOTB
 
 [COCOTB](https://github.com/potentialventures/cocotb) like HDL simulation environment where simulation is driven from Python. 
-Simulations are now executable python files. Is just an instance and can be manipulated as any other object.
+Simulation is just an object instance and can be manipulated as any other object.
 This allows better code reuse, integration with existing test frameworks and better test automation.
 
 
@@ -9,12 +9,15 @@ This allows better code reuse, integration with existing test frameworks and bet
 
 * install c compiler (tested with GCC 7.3.0)
 * install [verilator](https://www.veripool.org/projects/verilator/wiki/Installing)
-* run python3 setup.py install # [TODO]
+* run ```python3 setup.py install```
+* If you want to just test this library without any kind of installation use ```python3 setup.py build``` to build c extensions.
+
 
 
 # Current state
-* pre-alfa
-* experimental Python <-> Verilator binding
+* alfa
+* experimental Python <-> Verilator binding, experimental UVM like environment
+* some examples in tests
 
 
 # Similar software
