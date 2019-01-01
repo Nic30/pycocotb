@@ -11,11 +11,10 @@ environment:
     #- PYTHON: "C:\\Python35-x64"
     - TOOLSET: cygwin
       PYTHON: "C:\\Python37-x64"
-      CY: "c:\\cygwin64\\bin"
+      CYGWIN: "c:\\cygwin64"
 
 install:
-  - "C:\cygwin64\setup-x86_64.exe -qgnNdO -R C:/cygwin64 -s http://cygwin.mirror.constant.com -l C:/cygwin64/var/cache/setup --packages=autotools,make,git,autoconf,automake,bison,yacc"
-  - "%CY%\\bash ci_scripts/appveyor_install.sh"
+  - "%CYGWIN%\\bin\\bash ci_scripts/appveyor_install.sh"
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe setup.py build"
   - "%PYTHON%\\python.exe setup.py install"
