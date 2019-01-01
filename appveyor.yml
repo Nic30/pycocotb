@@ -11,7 +11,7 @@ environment:
     #- PYTHON: "C:\\Python35-x64"
     - TOOLSET: cygwin
       PYTHON: "C:\\Python37-x64"
-      CY: "c:\\cygwin\\bin"
+      CY: "c:\\cygwin64\\bin"
 
 install:
   - "c:\\cygwin\\setup-x86_64.exe -q --packages=autotools,make,git"
