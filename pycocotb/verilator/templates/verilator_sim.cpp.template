@@ -156,7 +156,6 @@ static void call_eval_sim(sim_step_t::push_type &sink, {{top_name}}_wrap * sim) 
     }
 }
 
-
 static void reset_simulation_deltastep(PySim_t *self) {
     using std::placeholders::_1;
     if (self->actual_sim_step)
@@ -198,12 +197,12 @@ static PyObject * PySim_eval(PySim_t* self, PyObject* args) {
     }
     self->read_only_not_write_only = true;
 
-    // Dump trace data for this step
-    if (self->tfp)
-        self->tfp->dump(self->time);
     
     PySim_eval_event_triggers(self);
     auto end_type = self->actual_sim_step->get().first;
+    // Dump trace data for this step
+    if (end_type ==  SIM_EV_END_OF_STEP && self->tfp)
+        self->tfp->dump(self->time);
     return PyLong_FromLong(end_type);
 }
 
