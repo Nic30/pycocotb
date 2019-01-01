@@ -14,6 +14,7 @@ environment:
       CY: "c:\\cygwin\\bin\\run.exe"
 
 install:
+  - "lynx -source rawgit.com/transcode-open/apt-cyg/master/apt-cyg > apt-cyg install apt-cyg /bin"
   - "%CY% apt-cyg install autotools"
   - "git clone http://git.veripool.org/git/verilator"
   - "cd verilator"
