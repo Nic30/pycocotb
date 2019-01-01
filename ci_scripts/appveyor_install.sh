@@ -18,6 +18,7 @@ git checkout .
 git am ../verilator_patches_tmp/*.patch
 # configure and build
 autoconf
+ls
 ./configure
 make
 make MKINSTALLDIRS="mkdir -p" install
