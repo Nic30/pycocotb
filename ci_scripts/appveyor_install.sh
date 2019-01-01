@@ -8,6 +8,9 @@ DEPENDENCIES=autotools,patch,make,git,autoconf,automake,libtool,bison,flex,yacc,
 # install verilator
 git clone http://git.veripool.org/git/verilator
 cd verilator
+git config user.email "fake@example.com"
+git config user.name "fake name"
+
 # disable newline modifing otherwise patches will not apply
 git config core.autocrlf false
 git checkout .
