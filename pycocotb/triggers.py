@@ -1,12 +1,5 @@
 
 
-class StopSimumulation(BaseException):
-    """
-    Exception raised from handle in simulation to stop simulation
-    """
-    pass
-
-
 class Event():
     """
     Simulation event
@@ -37,6 +30,13 @@ class Event():
             return "<Event {} {:#018x}>".format(self.debug_name, id(self))
 
 
+class StopSimumulation(BaseException):
+    """
+    Exception raised from handle in simulation to stop simulation
+    """
+    pass
+
+
 def raise_StopSimulation(sim):
     """
     Simulation process used to stop simulation
@@ -61,53 +61,32 @@ class WriteOnly(SimStep):
     PRIORITY = PRIORITY_URGENT + 1
 
 
-class AfterWriteOnly(SimStep):
-    """
-    Eval the circuit for combinational changes
-    """
-    PRIORITY = WriteOnly.PRIORITY + 1
-
-
 class ReadOnly(SimStep):
     """
     Update of combinational logic was performed and now
-    it is posible to read values and wait again on WriteOnly to update
+    it is possible to read values and wait again on WriteOnly to update
     circuit again
+
+    After this RTL simulation step is restarted if some process requires to write again
     """
-    PRIORITY = AfterWriteOnly.PRIORITY + 1
-
-
-class AfterReadOnly(SimStep):
-    PRIORITY = ReadOnly.PRIORITY + 1
+    PRIORITY = WriteOnly.PRIORITY + 1
 
 
 class CombStable(SimStep):
     """
     Combinational logic is stable and no update update
-    of any IO is allowed on this timestamp
+    of any IO is allowed on this time stamp
     """
-    PRIORITY = AfterReadOnly.PRIORITY + 1
-
-
-class FinishRtlSim(SimStep):
-    """
-    Finish delta step of RTL simulation if required
-    """
-    PRIORITY = CombStable.PRIORITY + 1
+    PRIORITY = ReadOnly.PRIORITY + 1
 
 
 class AllStable(SimStep):
     """
-    All values in circuit are stable for this timestamp
-    """
-    PRIORITY = FinishRtlSim.PRIORITY + 1
+    All values in circuit are stable for this time stamp
 
-
-class AfterStep(SimStep):
+    After this simulation time will be updated and new delta step will begin
     """
-    Circuit simulator is restarted for next step
-    """
-    PRIORITY = AllStable.PRIORITY
+    PRIORITY = CombStable.PRIORITY + 1
 
 
 class Timer():
