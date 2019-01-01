@@ -9,7 +9,8 @@ environment:
 
     #  DISTUTILS_USE_SDK: "1"
     #- PYTHON: "C:\\Python35-x64"
-    - PYTHON: "C:\\Python36-x64"
+    - TOOLSET: cygwin
+      PYTHON: "C:\\Python36-x64"
 
 install:
   - "git clone http://git.veripool.org/git/verilator"
