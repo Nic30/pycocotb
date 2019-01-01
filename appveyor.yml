@@ -14,6 +14,7 @@ environment:
       CY: "c:\\cygwin\\bin\\run.exe"
 
 install:
+  - "apt-cyg install autotools"
   - "git clone http://git.veripool.org/git/verilator"
   - "cd verilator"
   - "%CY% autoconf"
