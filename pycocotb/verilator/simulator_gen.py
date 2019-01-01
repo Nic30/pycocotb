@@ -1,6 +1,5 @@
 
 
-from multiprocessing.pool import ThreadPool
 import os
 from setuptools import Extension
 from setuptools.command.build_ext import build_ext
@@ -12,10 +11,10 @@ from typing import List, Dict, Tuple
 from jinja2.environment import Environment
 from jinja2.loaders import PackageLoader
 
-from pycocotb.verilator.ccompiler_tweaks import monkey_patch_parallel_compilation
 from pycocotb.verilator.fs_utils import find_files, working_directory
 from copy import deepcopy
 from distutils.sysconfig import get_config_var
+from importlib import machinery
 
 
 COCOPY_SRC_DIR = os.path.join(os.path.dirname(__file__), "c_files")
@@ -80,7 +79,6 @@ def generatePythonModuleWrapper(
         top_name: str, top_unique_name: str,
         build_dir: str,
         accessible_signals: List[Tuple[str, bool, bool, int]],
-        thread_pool: ThreadPool,
         extra_Extension_args: Dict[str, object]=DEFAULT_EXTENSION_EXTRA_ARGS):
     """
     Collect all c/c++ files into setuptools.Extension and build it
@@ -90,7 +88,6 @@ def generatePythonModuleWrapper(
     :param build_dir: tmp directory where simulation should be build
     :param verilator_include_dir: include directory of Verilator
     :param accessible_signals: List of tuples (signal_name, read_only, is_signed, type_width)
-    :param thread_pool: thread pool used for build
     :param extra_Extension_args: additional values for setuptools.Extension constructor
 
     :return: file name of builded module (.so/.dll file)
@@ -102,22 +99,30 @@ def generatePythonModuleWrapper(
                 top_name=top_name,
                 accessible_signals=accessible_signals))
         sources = getSrcFiles(".")
-        with monkey_patch_parallel_compilation(thread_pool):
-            dist = Distribution()
+        dist = Distribution()
 
-            dist.parse_config_files()
+        dist.parse_config_files()
 
-            extra_Extension_args = deepcopy(extra_Extension_args)
-            extra_Extension_args["sources"] = extra_Extension_args.get("sources", []) + sources
-            extra_Extension_args["include_dirs"] = extra_Extension_args.get("include_dirs", []) + [build_dir, ]
+        extra_Extension_args = deepcopy(extra_Extension_args)
+        extra_Extension_args["sources"] = extra_Extension_args.get("sources", []) + sources
+        extra_Extension_args["include_dirs"] = extra_Extension_args.get("include_dirs", []) + [build_dir, ]
 
-            sim = Extension(top_unique_name,
-                            **extra_Extension_args,
-                            )
+        sim = Extension(top_unique_name,
+                        **extra_Extension_args,
+                        )
 
-            dist.ext_modules = [sim]
-            _build_ext = build_ext(dist)
-            _build_ext.finalize_options()
-            _build_ext.run()
-            return os.path.join(build_dir, _build_ext.build_lib,
-                                sim._file_name)
+        dist.ext_modules = [sim]
+        _build_ext = build_ext(dist)
+        _build_ext.finalize_options()
+        _build_ext.run()
+        return os.path.join(build_dir, _build_ext.build_lib,
+                            sim._file_name)
+
+
+def loadPythonCExtensionFromFile(library_file_name: str, module_name: str):
+    importer = machinery.FileFinder(
+        os.path.dirname(os.path.abspath(library_file_name)),
+        (machinery.ExtensionFileLoader,
+         machinery.EXTENSION_SUFFIXES))
+    module = importer.find_module(module_name).load_module(module_name)
+    return module
