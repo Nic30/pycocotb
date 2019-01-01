@@ -1,5 +1,8 @@
-lynx -source rawgit.com/transcode-open/apt-cyg/master/apt-cyg > apt-cyg
+git clone https://github.com/transcode-open/apt-cyg
+cd apt-cyg
 install apt-cyg /bin
+cd ..
+
 apt-cyg install autotools
 
 git clone http://git.veripool.org/git/verilator
