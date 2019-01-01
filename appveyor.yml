@@ -13,12 +13,12 @@ environment:
       PYTHON: "C:\\Python36-x64"
 
 install:
-  - "git clone http://git.veripool.org/git/verilator"
+  - "git clone http://git.veripool.org/git/verilator --depth 10"
   - "cd verilator"
-  - "autoconf"
+  - "c:\cygwin\bin\run.exe autoconf"
   - "./configure"
-  - "make"
-  - "make install"
+  - "c:\cygwin\bin\run.exe make"
+  - "c:\cygwin\bin\run.exe make install"
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe setup.py build"
   - "%PYTHON%\\python.exe setup.py install"
