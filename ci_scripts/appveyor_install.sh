@@ -1,5 +1,5 @@
 # otherwise no cywgin apps are in path
-export PATH="/bin:$PATH"
+export PATH="/bin:/usr/bin:/usr/local/bin:$PATH"
 
 # install base dependencies
 DEPENDENCIES=autotools,patch,make,git,autoconf,automake,libtool,bison,flex,yacc,gcc,gcc-g++
@@ -8,7 +8,13 @@ DEPENDENCIES=autotools,patch,make,git,autoconf,automake,libtool,bison,flex,yacc,
 # install verilator
 git clone http://git.veripool.org/git/verilator
 cd verilator
+# disable newline modifing otherwise patches will not apply
+git config core.autocrlf false
+git checkout .
+# appply patches
+git am ../verilator_patches_tmp/*.patch
+# configure and build
 autoconf
 ./configure
 make
-make install
+make MKINSTALLDIRS="mkdir -p" install
