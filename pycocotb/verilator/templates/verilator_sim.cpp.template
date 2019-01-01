@@ -2,6 +2,7 @@
 
 #include "V{{top_name}}.h"
 #include "V{{top_name}}__Syms.h"
+#include <iostream>
 
 
 class {{top_name}}_wrap: public V{{top_name}} {
@@ -13,7 +14,10 @@ public:
     		__comb_update_triggered(false) {
     }
     void eval() {
+    	VCntr__Syms* __restrict vlSymsp = this->__VlSymsp;
     	__comb_update_triggered = false;
+    	// [TODO]
+    	_eval_settle(vlSymsp);
     	V{{top_name}}::eval();
         if (!__comb_update_triggered) {
         	__comb_update_triggered = true;
