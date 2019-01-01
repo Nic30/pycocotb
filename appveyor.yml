@@ -14,6 +14,8 @@ environment:
 install:
   # We need wheel installed to build wheels
   - "%PYTHON%\\python.exe -m pip install wheel"
+  - "build.cmd %PYTHON%\\python.exe setup.py build"
+  - "build.cmd %PYTHON%\\python.exe setup.py install"
 
 build: off
 
