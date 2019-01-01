@@ -11,14 +11,15 @@ environment:
     #- PYTHON: "C:\\Python35-x64"
     - TOOLSET: cygwin
       PYTHON: "C:\\Python36-x64"
+      CY: "c:\\cygwin\\bin\\run.exe"
 
 install:
   - "git clone http://git.veripool.org/git/verilator --depth 10"
   - "cd verilator"
-  - "c:\cygwin\bin\run.exe autoconf"
-  - "./configure"
-  - "c:\cygwin\bin\run.exe make"
-  - "c:\cygwin\bin\run.exe make install"
+  - "%CY% autoconf"
+  - ".\\configure"
+  - "%CY% make"
+  - "%CY% make install"
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe setup.py build"
   - "%PYTHON%\\python.exe setup.py install"
