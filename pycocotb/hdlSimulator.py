@@ -197,6 +197,8 @@ class HdlSimulator():
         for ev in process:
             # if process requires waiting put it back in queue
             if isinstance(ev, Timer):
+                if ev.time == 0:
+                    continue
                 # put process to sleep as required by Timer event
                 self.schedule(self.now + ev.time, PRIORITY_URGENT, process)
                 break
