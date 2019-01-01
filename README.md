@@ -26,6 +26,9 @@ This allows better code reuse, integration with existing test frameworks and bet
 * install [Cygwin](https://cygwin.com/install.html) and save installer `setup-x86_64.exe` to cygwin root. 
 * use `ci_scripts/appveyor_install.sh` to install this library and it's dependencies 
 
+After installation verilator has to run under cygwin, but python and this library are not restricted.
+
+
 # Current state
 * alfa
 * experimental Python <-> Verilator binding, experimental UVM like environment
