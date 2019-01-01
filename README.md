@@ -1,5 +1,7 @@
 # PyCOCOTB
 
+[![Build status](https://ci.appveyor.com/api/projects/status/oy1ciuqhuax6vt4u?svg=true)](https://ci.appveyor.com/project/nic30/pycocotb)
+
 [COCOTB](https://github.com/potentialventures/cocotb) like HDL simulation environment where simulation is driven from Python. 
 Simulation is just an object instance and can be manipulated as any other object.
 This allows better code reuse, integration with existing test frameworks and better test automation.
