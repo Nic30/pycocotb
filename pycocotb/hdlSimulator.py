@@ -303,7 +303,7 @@ class HdlSimulator():
     def onAfterReadOnly(self):
         self._readOnlyEv = None
         if self._writeOnlyEv is not None:
-            # if write in this timestamp is required we have to reevaluate
+            # if write in this time stamp is required we have to reevaluate
             # the combinational logic
             self.rtl_simulator._reset_eval()
         self.waitCombStable()
