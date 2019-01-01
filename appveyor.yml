@@ -14,7 +14,7 @@ environment:
       CY: "c:\\cygwin\\bin\\run.exe"
 
 install:
-  - "git clone http://git.veripool.org/git/verilator --depth 10"
+  - "git clone http://git.veripool.org/git/verilator"
   - "cd verilator"
   - "%CY% autoconf"
   - ".\\configure"
