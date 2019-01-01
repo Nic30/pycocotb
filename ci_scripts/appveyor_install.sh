@@ -17,6 +17,7 @@ git checkout .
 # appply patches
 git am ../verilator_patches_tmp/*.patch
 # configure and build
+autoconf --version
 autoconf
 echo "autoconf exited with $?"
 ls
