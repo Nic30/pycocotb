@@ -18,7 +18,7 @@ git checkout .
 git am ../verilator_patches_tmp/*.patch
 # configure and build
 autoconf --version
-autoconf
+autoconf --verbose
 echo "autoconf exited with $?"
 ls
 ./configure
