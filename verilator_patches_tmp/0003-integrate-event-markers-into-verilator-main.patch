@@ -1,0 +1,68 @@
+From 0361d3a76b729c9c925cf93bac7d37af89a849c5 Mon Sep 17 00:00:00 2001
+From: Michal Orsak <xorsak01@stud.fit.vutbr.cz>
+Date: Fri, 21 Dec 2018 12:41:48 +0100
+Subject: [PATCH 3/3] integrate event markers into verilator main
+
+---
+ src/V3Options.cpp | 1 +
+ src/V3Options.h   | 2 ++
+ src/Verilator.cpp | 4 ++++
+ 3 files changed, 7 insertions(+)
+
+diff --git a/src/V3Options.cpp b/src/V3Options.cpp
+index cdb6ce38..b8341d46 100644
+--- a/src/V3Options.cpp
++++ b/src/V3Options.cpp
+@@ -672,6 +672,7 @@ void V3Options::parseOptsList(FileLine* fl, const string& optdir, int argc, char
+ 	    else if ( onoff   (sw, "-decoration", flag/*ref*/) ) { m_decoration = flag; }
+             else if ( onoff   (sw, "-dump-defines", flag/*ref*/) ) { m_dumpDefines = flag; }
+ 	    else if ( onoff   (sw, "-dump-tree", flag/*ref*/) )	{ m_dumpTree = flag ? 3 : 0; }  // Also see --dump-treei
++	    else if ( onoff   (sw, "-event-triggers", flag/*ref*/) )	{ m_event_triggers = flag; }
+ 	    else if ( onoff   (sw, "-exe", flag/*ref*/) )	{ m_exe = flag; }
+ 	    else if ( onoff   (sw, "-ignc", flag/*ref*/) )	{ m_ignc = flag; }
+ 	    else if ( onoff   (sw, "-inhibit-sim", flag/*ref*/)){ m_inhibitSim = flag; }
+diff --git a/src/V3Options.h b/src/V3Options.h
+index cc953b95..2076e332 100644
+--- a/src/V3Options.h
++++ b/src/V3Options.h
+@@ -116,6 +116,7 @@ class V3Options {
+     bool	m_decoration;	// main switch: --decoration
+     bool        m_dumpDefines;  // main switch: --dump-defines
+     bool	m_exe;		// main switch: --exe
++    bool	m_event_triggers; // main switch: --event-triggers
+     bool	m_ignc;		// main switch: --ignc
+     bool	m_inhibitSim;	// main switch: --inhibit-sim
+     bool	m_lintOnly;	// main switch: --lint-only
+@@ -282,6 +283,7 @@ class V3Options {
+     bool debugSelfTest() const { return m_debugSelfTest; }
+     bool decoration() const { return m_decoration; }
+     bool dumpDefines() const { return m_dumpDefines; }
++    bool event_triggers() const { return m_event_triggers; }
+     bool exe() const { return m_exe; }
+     bool threadsDpiPure() const { return m_threadsDpiPure; }
+     bool threadsDpiUnpure() const { return m_threadsDpiUnpure; }
+diff --git a/src/Verilator.cpp b/src/Verilator.cpp
+index 95b8a661..11482ef5 100644
+--- a/src/Verilator.cpp
++++ b/src/Verilator.cpp
+@@ -96,6 +96,7 @@
+ 
+ #include <ctime>
+ #include <sys/stat.h>
++#include <V3EventMarker.h>
+ 
+ V3Global v3Global;
+ 
+@@ -396,6 +397,9 @@ void process() {
+ 	// Change generated clocks to look at delayed signals
+ 	V3GenClk::genClkAll(v3Global.rootp());
+ 
++	// Add markers for starts of evaluation of edge dependent code
++	if (v3Global.opt.event_triggers()) V3EventMarker::eventMarkerAll(v3Global.rootp());
++
+ 	// Convert sense lists into IF statements.
+ 	V3Clock::clockAll(v3Global.rootp());
+ 
+-- 
+2.17.1
+

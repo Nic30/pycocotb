@@ -8,7 +8,9 @@ This allows better code reuse, integration with existing test frameworks and bet
 # Installation
 
 * install c compiler (tested with GCC 7.3.0)
-* install [verilator](https://www.veripool.org/projects/verilator/wiki/Installing)
+* download [verilator](https://www.veripool.org/projects/verilator/wiki/Installing)
+* apply patches from verilator)patches_tmp
+* install verilator
 * run ```python3 setup.py install```
 * If you want to just test this library without any kind of installation use ```python3 setup.py build``` to build c extensions.
 
