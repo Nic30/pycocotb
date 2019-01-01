@@ -14,7 +14,7 @@ environment:
       CY: "c:\\cygwin64\\bin"
 
 install:
-  - "c:\\cygwin\\setup-x86_64.exe -q --packages=autotools,make,git"
+  - "c:\\cygwin64\\setup-x86_64.exe -q --packages=autotools,make,git"
   - "%CY%\\bash ci_scripts/appveyor_install.sh"
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe setup.py build"
