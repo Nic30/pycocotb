@@ -11,17 +11,10 @@ environment:
     #- PYTHON: "C:\\Python35-x64"
     - TOOLSET: cygwin
       PYTHON: "C:\\Python37-x64"
-      CY: "c:\\cygwin\\bin\\run.exe"
+      CY: "c:\\cygwin\\bin"
 
 install:
-  - "%CY% lynx -source rawgit.com/transcode-open/apt-cyg/master/apt-cyg > apt-cyg install apt-cyg /bin"
-  - "%CY% apt-cyg install autotools"
-  - "git clone http://git.veripool.org/git/verilator"
-  - "cd verilator"
-  - "%CY% autoconf"
-  - ".\\configure"
-  - "%CY% make"
-  - "%CY% make install"
+  - "%CY%\\bash ci_scripts/appveyor_install.sh"
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe setup.py build"
   - "%PYTHON%\\python.exe setup.py install"
