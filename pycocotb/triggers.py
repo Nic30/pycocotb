@@ -69,7 +69,7 @@ class ReadOnly(SimStep):
 
     After this RTL simulation step is restarted if some process requires to write again
     """
-    PRIORITY = WriteOnly.PRIORITY + 1
+    PRIORITY = WriteOnly.PRIORITY
 
 
 class CombStable(SimStep):
