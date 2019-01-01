@@ -1,8 +1,11 @@
-$CYGWIN/setup-x86_64.exe -qgnNdO -R C:/cygwin64 \
-    -s http://cygwin.mirror.constant.com \
-	-l C:/cygwin64/var/cache/setup \
-	--packages=autotools,make,git,autoconf,automake,libtool,bison,yacc
+# otherwise no cywgin apps are in path
+export PATH="/bin:$PATH"
 
+# install base dependencies
+DEPENDENCIES=autotools,patch,make,git,autoconf,automake,libtool,bison,flex,yacc,gcc,gcc-g++
+/setup-x86_64.exe -qgnNdO -s http://cygwin.mirror.constant.com --packages=$DEPENDENCIES
+
+# install verilator
 git clone http://git.veripool.org/git/verilator
 cd verilator
 autoconf
