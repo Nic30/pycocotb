@@ -2,25 +2,32 @@
 #include <structmember.h>
 #include <assert.h>
 
-
-// [TODO] use random generator of the parent component
+static inline uint8_t MASK(uint8_t bits){
+	return (1 << bits) - 1;
+}
 
 inline void SET_INVALID(void * d, size_t size) {
+// [TODO] use random generator of the parent component
 	memset(d, 0, size);
 }
 
 void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
-		uint8_t * signal, size_t signal_size, bool is_signed, const char * name,
+		uint8_t * signal, size_t signal_bits, bool is_signed, const char * name,
 		std::unordered_set<SignalMemProxy_t*> * signals_checked_for_change,
 		const bool * read_only_not_write_only) {
 	self->is_read_only = is_read_only;
 	self->signal = signal;
-	assert(signal_size > 0);
-	self->signal_size = signal_size;
-	self->is_signed = is_read_only;
+	assert(signal_bits > 0);
+	self->signal_bits = signal_bits;
+	self->signal_bytes = signal_bits / 8;
+	if (self->signal_bits > self->signal_bytes * 8)
+		self->signal_bytes += 1;
+	self->last_byte_mask = MASK(signal_bits % 8);
+
+	self->is_signed = is_signed;
 	self->name = PyUnicode_FromString(name);
 	self->signals_checked_for_change = signals_checked_for_change;
-	self->value_cache = new uint8_t[signal_size];
+	self->value_cache = new uint8_t[self->signal_bytes];
 	self->read_only_not_write_only = read_only_not_write_only;
 }
 
@@ -50,7 +57,7 @@ SignalMemProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     }
     self->is_read_only = true;
     self->signal = nullptr;
-    self->signal_size = 0;
+    self->signal_bits = 0;
     self->is_signed = false;
     self->name = nullptr;
     self->value_cache = nullptr;
@@ -70,8 +77,21 @@ SignalMemProxy_read(SignalMemProxy_t* self, PyObject* args) {
 		PyErr_SetString(PyExc_AssertionError, "Can not read value in write only simulation phase.");
 		return nullptr;
 	}
-
-	PyObject * val = _PyLong_FromByteArray(self->signal, self->signal_size, 1, self->is_signed);
+	if (self->last_byte_mask != 0xff){
+		if (self->is_signed) {
+			uint8_t msb_index =  self->signal_bits % 8; // [TODO] check if compiler can resolve & 0x7
+			auto last_byte = self->signal[self->signal_bytes - 1];
+			uint8_t msb = (last_byte >> (msb_index-1) & 0x1);
+			if (msb) {
+				self->signal[self->signal_bytes - 1] |= ~self->last_byte_mask;
+			} else {
+				self->signal[self->signal_bytes - 1] &= self->last_byte_mask;
+			}
+		} else {
+			self->signal[self->signal_bytes - 1] &= self->last_byte_mask;
+		}
+	}
+	PyObject * val = _PyLong_FromByteArray(self->signal, self->signal_bytes, 1, self->is_signed);
     if (val == nullptr) {
     	PyErr_SetString(PyExc_AssertionError, "Can not create a PyLongObject from value in simulation.");
     	return nullptr;
@@ -92,11 +112,11 @@ SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args) {
 	}
 
 	if (reinterpret_cast<PyObject*>(val) == Py_None) {
-		SET_INVALID(self->signal, self->signal_size);
+		SET_INVALID(self->signal, self->signal_bits);
 	} else if (!PyLong_Check(val)) {
 		PyErr_SetString(PyExc_ValueError, "Argument has to be an integer.");
 		return nullptr;
-	} else if(_PyLong_AsByteArray(val, self->signal, self->signal_size, 1, self->is_signed)) {
+	} else if(_PyLong_AsByteArray(val, self->signal, self->signal_bytes, 1, self->is_signed)) {
     	return nullptr;
     }
 
@@ -119,11 +139,11 @@ SignalMemProxy_onChangeAdd(SignalMemProxy_t* self, PyObject* args) {
 }
 
 void SignalMemProxy_cache_value(SignalMemProxy_t* self) {
-    memcpy(self->value_cache, self->signal, self->signal_size);
+    memcpy(self->value_cache, self->signal, self->signal_bits);
 }
 
 bool SignalMemProxy_value_changed(SignalMemProxy_t* self) {
-    return memcmp(self->value_cache, self->signal, self->signal_size) != 0;
+    return memcmp(self->value_cache, self->signal, self->signal_bits) != 0;
 }
 
 static void

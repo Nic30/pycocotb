@@ -11,7 +11,9 @@ struct SignalMemProxy_t {
     PyObject_HEAD
 	bool is_read_only; // flag which tells if this signal can be written
 	uint8_t * signal; // pointer to memory where signal value is stored in simulator
-	size_t signal_size; // byte size of value
+	size_t signal_bits; // size of value in bits
+	size_t signal_bytes; // size of value in bytes
+	uint8_t last_byte_mask; // validity mask for last byte
 	bool is_signed; // flag for value of signed type
 	const bool * read_only_not_write_only; // flag to specify allowed IO operations
 	std::vector<PyObject *> * callbacks; // python functions which are called when value of this signal changes
@@ -30,7 +32,7 @@ struct SignalMemProxy_t {
  * Initialize SignalMemProxy_t
  * */
 void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
-		uint8_t * signal, size_t signal_size, bool is_signed, const char * name,
+		uint8_t * signal, size_t signal_bits, bool is_signed, const char * name,
 		std::unordered_set<SignalMemProxy_t*> * signals_checked_for_change,
 		const bool * read_only_not_write_only);
 
