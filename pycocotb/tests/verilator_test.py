@@ -88,10 +88,6 @@ def get_sync_pull_up_driver_with_reset(sig, clk, rst):
 
     def pull_up_after(sim):
         exp_t = sim.now
-        yield sim.waitWriteOnly()
-        sig.write(0)
-        assert sim.now == exp_t
-
         yield sim.waitReadOnly()
         assert sim.now == exp_t
 
@@ -102,7 +98,7 @@ def get_sync_pull_up_driver_with_reset(sig, clk, rst):
 
     return [
         init,
-        OnRisingCallbackLoop(sig, pull_up_after, lambda: True),
+        OnRisingCallbackLoop(clk, pull_up_after, lambda: True),
     ]
 
 
@@ -159,7 +155,16 @@ class VerilatorTC(unittest.TestCase):
 
         return cntrSimInstance
 
+    def test_dual_build(self):
+        with TemporaryDirectory() as build_dir0, TemporaryDirectory() as build_dir1:
+            sim0 = self.cntr_build(build_dir0)
+            sim1 = self.cntr_build(build_dir1)
+            self.assertIsNot(sim0, sim1)
+
     def test_sim_cntr(self):
+        """
+        Time synchronized monitors (val) and drivers (clk, rst, en)
+        """
         # build_dir = "tmp"
         # if True:
         with TemporaryDirectory() as build_dir:
@@ -191,6 +196,11 @@ class VerilatorTC(unittest.TestCase):
             self.assertSequenceEqual(data, REF_DATA)
 
     def test_sim_cntr2(self):
+        """
+        Clock dependency on clk
+            * monitor of val
+        Simulation step restart due write after reset read
+        """
         # build_dir = "tmp"
         # if True:
         with TemporaryDirectory() as build_dir:
@@ -212,6 +222,11 @@ class VerilatorTC(unittest.TestCase):
             self.assertSequenceEqual(data, REF_DATA)
 
     def test_sim_cntr_pull_up_reset(self):
+        """
+        Clock dependency on clk
+            * monitor of val
+        Simulation step restart due write after reset read
+        """
         # build_dir = "tmp"
         # if True:
         with TemporaryDirectory() as build_dir:
@@ -233,6 +248,12 @@ class VerilatorTC(unittest.TestCase):
             self.assertSequenceEqual(data, REF_DATA)
 
     def test_sim_cntr_sync_pull_up_reset(self):
+        """
+        Clock dependency on clk
+            * driver of en
+            * monitor of val
+        Simulation step restart due write after reset read
+        """
         # build_dir = "tmp"
         # if True:
         with TemporaryDirectory() as build_dir:
@@ -241,7 +262,7 @@ class VerilatorTC(unittest.TestCase):
             data = []
 
             sim = HdlSimulator(rtl_sim)
-            # rtl_sim._set_trace_file("cntr.vcd", -1)
+            # rtl_sim._set_trace_file(join(build_dir, "cntr.vcd"), -1)
             sim.run(CLK_PERIOD * 10.5,
                     extraProcesses=[
                         get_clk_driver(rtl_sim.clk, CLK_PERIOD),
@@ -256,7 +277,7 @@ class VerilatorTC(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    #suite.addTest(VerilatorTC('test_sim_cntr_sync_pull_up_reset'))
+    # suite.addTest(VerilatorTC('test_sim_cntr_sync_pull_up_reset'))
     suite.addTest(unittest.makeSuite(VerilatorTC))
     runner = unittest.TextTestRunner(verbosity=3)
     runner.run(suite)
