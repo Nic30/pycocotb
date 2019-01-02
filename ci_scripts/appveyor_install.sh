@@ -19,6 +19,7 @@ git am ../verilator_patches_tmp/*.patch
 # configure and build
 autoconf --version
 cygcheck autoconf
+cat /usr/share/autotools/ac-wrapper.sh
 autoconf --verbose
 echo "autoconf exited with $?"
 ls
