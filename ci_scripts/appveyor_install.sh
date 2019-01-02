@@ -21,7 +21,8 @@ autoconf --version
 cygcheck autoconf
 cygcheck /usr/bin/autom4te-2.69
 cat /usr/share/autotools/ac-wrapper.sh
-autoconf --verbose
+#autoconf --verbose
+/usr/bin/autom4te-2.69 --verbose --language=autoconf --output=configure configure.ac
 echo "autoconf exited with $?"
 ls
 ./configure
