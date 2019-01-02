@@ -2,7 +2,7 @@
 export PATH="/usr/local/:/usr/bin:bin/bin:$PATH"
 echo "PATH=$PATH"
 # install base dependencies
-DEPENDENCIES=autotools,patch,make,git,autoconf,automake,libtool,bison,flex,yacc,gcc,gcc-core,gcc-g++,readline,m4
+DEPENDENCIES=autotools,patch,make,git,autoconf,automake,libtool,bison,flex,yacc,gcc,gcc-core,gcc-g++,readline,m4,libsigsegv2
 /setup-x86_64.exe -qgnNdO -s http://cygwin.mirror.constant.com --packages=$DEPENDENCIES
 
 # install verilator
@@ -18,6 +18,7 @@ git checkout .
 git am ../verilator_patches_tmp/*.patch
 # configure and build
 autoconf --version
+cygcheck autoconf
 autoconf --verbose
 echo "autoconf exited with $?"
 ls
