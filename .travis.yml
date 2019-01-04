@@ -31,10 +31,9 @@ install:
 # install verilator
 - git clone http://git.veripool.org/git/verilator
 - cd verilator
+# fake account to apply the patches
 - git config user.email "fake@example.com"
 - git config user.name "fake name"
-
-# disable newline modifing otherwise patches will not apply
 - git checkout .
 # appply patches
 - git am ../verilator_patches_tmp/*.patch
@@ -56,5 +55,5 @@ script:
 #    tags: true
 #    branch: master
 
-after_success:
-- coveralls
+#after_success:
+#- coveralls
