@@ -42,6 +42,7 @@ install:
 - ./configure
 - CPPFLAGS=-std=c++11 make
 - sudo make install
+- cd ..
 - sudo python setup.py install
 
 script:
