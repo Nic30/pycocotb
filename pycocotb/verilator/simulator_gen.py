@@ -57,7 +57,7 @@ DEFAULT_EXTENSION_EXTRA_ARGS = {
     "include_dirs": [VERILATOR_INCLUDE_DIR, COCOPY_SRC_DIR],
     "language": "c++",
     "library_dirs": [IN_PLACE_LIB_DIR, INSTALLED_LIB_DIR],
-    "extra_compile_args": "-std=c++11",
+    "extra_compile_args": ["-std=c++11", ],
 }
 
 

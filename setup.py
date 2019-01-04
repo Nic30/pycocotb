@@ -16,7 +16,7 @@ VERILATOR_SOURCES = [
 verilator_common = Library(
     "pycocotb.verilator.common",
     sources=COCOPY_SRCS + VERILATOR_SOURCES,
-    extra_compile_args="-std=c++11",
+    extra_compile_args=["-std=c++11", ],
 )
 
 setup(
