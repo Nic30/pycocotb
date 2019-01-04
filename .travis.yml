@@ -39,7 +39,7 @@ install:
 - git am ../verilator_patches_tmp/*.patch
 - autoconf
 - ./configure
-- make
+- CPPFLAGS=-std=c++11 make
 - make install
 - python setup.py install
 
