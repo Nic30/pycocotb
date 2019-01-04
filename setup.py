@@ -13,8 +13,11 @@ VERILATOR_SOURCES = [
     for x in ["verilated.cpp", "verilated_save.cpp", "verilated_vcd_c.cpp"]
 ]
 
-verilator_common = Library("pycocotb.verilator.common",
-               sources=COCOPY_SRCS + VERILATOR_SOURCES)
+verilator_common = Library(
+    "pycocotb.verilator.common",
+    sources=COCOPY_SRCS + VERILATOR_SOURCES,
+    extra_compile_args="-std=c++11",
+)
 
 setup(
     name='pycocotb',
