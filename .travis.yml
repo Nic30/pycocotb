@@ -13,9 +13,22 @@ python:
 - '3.6'
 #- nightly
 
+cache:
+  - apt: true
+  - pip : true
+
+compiler: gcc
+
+addons:
+   apt:
+      sources:
+         - ubuntu-toolchain-r-test
+      packages:
+         - build-essential 
+
 install:
 - pip install coveralls
-- python3 setup.py install --user
+- python setup.py install --user
 
 script:
 - coverage run --source=pycocotb setup.py test
