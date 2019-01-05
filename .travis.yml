@@ -22,8 +22,13 @@ compiler: gcc
 
 addons:
    apt:
+      update: true
+      sources:
+         - sourceline: 'ppa:mhier/libboost-latest'
+         - ubuntu-toolchain-r-test
       packages:
          - build-essential 
+         - boost1.67
 
 install:
 - pip install pytest coveralls
