@@ -46,7 +46,8 @@ install:
 - sudo python setup.py install
 
 script:
-- coverage run --source=pycocotb setup.py test
+# sudo it is not required to run, but to generate coverage file
+- sudo coverage run --source=pycocotb setup.py test
 
 #deploy:
 #  provider: pypi
