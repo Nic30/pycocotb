@@ -23,6 +23,9 @@ setup(
     name='pycocotb',
     version='0.1',
     author='',
+    install_requires=[
+        "jinja2",  # template engine
+    ],
     author_email='michal.o.socials@gmail.com',
     ext_modules=[verilator_common],
 )
