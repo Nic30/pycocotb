@@ -33,10 +33,12 @@ matrix:
       - os: linux
         compiler: gcc
         env:
-           - COMPILER=g++-6
+           - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+
+before_install:
+    - eval "${MATRIX_EVAL}"
       
 install:
-  - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then export CXX=${COMPILER}; fi
   - pip install pytest coveralls
   # install verilator
   - git clone http://git.veripool.org/git/verilator
