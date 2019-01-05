@@ -20,7 +20,7 @@ cache:
 
 matrix:
   include:
-    - env: COMPILER=g++-6 BUILD=Debug
+    - env: COMPILER=g++-6
   compiler: gcc
   addons:
     apt:
