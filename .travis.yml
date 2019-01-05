@@ -1,6 +1,7 @@
+os: linux
 dist: bionic
-
 language: python
+sudo: true
 
 git:
   depth: 1
@@ -12,41 +13,41 @@ python:
 #- '3.5'
 - '3.6'
 #- nightly
-sudo: true
 
 cache:
   - apt: true
   - pip : true
 
+addons:
+  apt:
+    update: true
+    sources:
+      - sourceline: 'ppa:mhier/libboost-latest'
+      - ubuntu-toolchain-r-test
+    packages:
+      - build-essential 
+      - boost1.67
+env: COMPILER=g++-6
 compiler: gcc
 
-addons:
-   apt:
-      update: true
-      sources:
-         - sourceline: 'ppa:mhier/libboost-latest'
-         - ubuntu-toolchain-r-test
-      packages:
-         - build-essential 
-         - boost1.67
-
 install:
-- pip install pytest coveralls
-# install verilator
-- git clone http://git.veripool.org/git/verilator
-- cd verilator
-# fake account to apply the patches
-- git config user.email "fake@example.com"
-- git config user.name "fake name"
-- git checkout .
-# appply patches
-- git am ../verilator_patches_tmp/*.patch
-- autoconf
-- ./configure
-- CPPFLAGS=-std=c++11 make
-- sudo make install
-- cd ..
-- python setup.py build
+  - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then export CXX=${COMPILER}; fi
+  - pip install pytest coveralls
+  # install verilator
+  - git clone http://git.veripool.org/git/verilator
+  - cd verilator
+  # fake account to apply the patches
+  - git config user.email "fake@example.com"
+  - git config user.name "fake name"
+  - git checkout .
+  # appply patches
+  - git am ../verilator_patches_tmp/*.patch
+  - autoconf
+  - ./configure
+  - CPPFLAGS=-std=c++11 make
+  - sudo make install
+  - cd ..
+  - python setup.py build
 
 script:
 # sudo it is not required to run, but to generate coverage file

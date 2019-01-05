@@ -16,8 +16,8 @@ This allows better code reuse, integration with existing test frameworks and bet
 * download [verilator](https://www.veripool.org/projects/verilator/wiki/Installing)
 * apply patches from `verilator_patches_tmp` (`cd verilator; git am ../verilator_patches_tmp/*.patch`)
 * install verilator
-* run ```python3 setup.py install```
-* Or if you want to just test this library without any kind of installation use ```python3 setup.py build``` to build c extensions.
+* run `sudo python3 setup.py install` to install globally or `python3 setup.py install --user` to install to `~/.local/...`
+* Or if you want to just test this library without any kind of installation use `python3 setup.py build` to build c extensions.
 
 ## Windows
 
