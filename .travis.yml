@@ -22,13 +22,11 @@ compiler: gcc
 
 addons:
    apt:
-#      sources:
-#         - ubuntu-toolchain-r-test
       packages:
          - build-essential 
 
 install:
-- pip install coveralls
+- pip install pytest coveralls
 # install verilator
 - git clone http://git.veripool.org/git/verilator
 - cd verilator
@@ -43,11 +41,11 @@ install:
 - CPPFLAGS=-std=c++11 make
 - sudo make install
 - cd ..
-- sudo python setup.py install
+- python setup.py build
 
 script:
 # sudo it is not required to run, but to generate coverage file
-- sudo coverage run --source=pycocotb setup.py test
+- coverage run --source=pycocotb setup.py test
 
 #deploy:
 #  provider: pypi
