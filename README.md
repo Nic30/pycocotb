@@ -12,7 +12,7 @@ This allows better code reuse, integration with existing test frameworks and bet
 
 ## Linux
 
-* `sudo apt install build-essential python3 cmake flex bison git` 
+* `sudo apt install build-essential python3 cmake flex bison git libboost-dev libboost-all-dev` 
 * download [verilator](https://www.veripool.org/projects/verilator/wiki/Installing)
 * apply patches from `verilator_patches_tmp` (`cd verilator; git am ../verilator_patches_tmp/*.patch`)
 * install verilator
@@ -24,6 +24,7 @@ This allows better code reuse, integration with existing test frameworks and bet
 * install [Python 3](https://www.python.org/downloads/)
 * install [Visual Studio](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=15) (C++)
 * install [CMake](https://cmake.org/)
+* install [boost](https://www.boost.org/doc/libs/1_69_0/more/getting_started/windows.html)
 * install [Cygwin](https://cygwin.com/install.html) and save installer `setup-x86_64.exe` to cygwin root. 
 * use `ci_scripts/appveyor_install.sh` to install this library and it's dependencies 
 
