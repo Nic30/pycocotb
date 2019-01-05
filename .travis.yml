@@ -19,9 +19,9 @@ cache:
 
 addons:
    apt:
-      # sources:
-      # - ubuntu-toolchain-r-test
-      #- sourceline: 'ppa:mhier/libboost-latest'
+      sources:
+       - ubuntu-toolchain-r-test
+       - sourceline: 'ppa:mhier/libboost-latest'
       packages:
       - g++-6
       - gcc-6
