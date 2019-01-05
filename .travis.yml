@@ -37,9 +37,9 @@ matrix:
 
 before_install:
     - eval "${MATRIX_EVAL}"
-      
+    - pip install pytest coveralls
+
 install:
-  - pip install pytest coveralls
   # install verilator
   - git clone http://git.veripool.org/git/verilator
   - cd verilator
