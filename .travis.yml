@@ -57,8 +57,7 @@ install:
   - python setup.py build
 
 script:
-# sudo it is not required to run, but to generate coverage file
-- coverage run --source=pycocotb setup.py test
+  - coverage run --source=pycocotb setup.py test
 
 #deploy:
 #  provider: pypi
@@ -69,5 +68,5 @@ script:
 #    tags: true
 #    branch: master
 
-#after_success:
-#- coveralls
+after_success:
+  - coveralls
