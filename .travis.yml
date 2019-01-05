@@ -17,23 +17,24 @@ cache:
   #- apt: true
   - pip : true
 
-matrix:
-  include:
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'ppa:mhier/libboost-latest'
-          packages:
-            - g++-6
-            - gcc-6
-            - boost1.67
-            - build-essential 
-      env:
-        - COMPILER=g++-6
+addons:
+   apt:
+      sources:
+      - ubuntu-toolchain-r-test
+      - sourceline: 'ppa:mhier/libboost-latest'
+      packages:
+      - g++-6
+      - gcc-6
+      - boost1.67
+      - build-essential 
 
+matrix:
+   include:
+      - os: linux
+        compiler: gcc
+        env:
+           - COMPILER=g++-6
+      
 install:
   - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then export CXX=${COMPILER}; fi
   - pip install pytest coveralls
