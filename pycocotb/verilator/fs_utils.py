@@ -1,8 +1,6 @@
 from contextlib import contextmanager
 import fnmatch
 import os
-import shutil
-import tempfile
 
 
 @contextmanager
@@ -13,13 +11,6 @@ def working_directory(directory):
         yield directory
     finally:
         os.chdir(owd)
-
-
-@contextmanager
-def tempdir(suffix=None, prefix=None, dir=None):
-    dirpath = tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=dir)
-    yield dirpath
-    shutil.rmtree(dirpath)
 
 
 def find_files(directory, pattern, recursive=True):
