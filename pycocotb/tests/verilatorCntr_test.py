@@ -7,6 +7,8 @@ from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.triggers import Timer
 from pycocotb.constants import CLK_PERIOD
 from pycocotb.process_utils import OnRisingCallbackLoop
+from pycocotb.agents.rst import PullDownAgent, PullUpAgent
+from pycocotb.agents.clk import ClockAgent
 
 VERILOG_SRCS = dirname(abspath(__file__))
 
@@ -193,7 +195,7 @@ class VerilatorCntrTC(unittest.TestCase):
                     data.append((sim.now, int(val.read())))
 
             sim = HdlSimulator(rtl_sim)
-            # rtl_sim._set_trace_file("cntr.vcd", -1)
+            # rtl_sim.set_trace_file("cntr.vcd", -1)
             sim.run(CLK_PERIOD * 10.5,
                     extraProcesses=[
                         get_clk_driver(io.clk, CLK_PERIOD),
@@ -216,10 +218,10 @@ class VerilatorCntrTC(unittest.TestCase):
         with TemporaryDirectory() as build_dir:
             rtl_sim = self.cntr_build(build_dir)
             io = rtl_sim.io
+            sim = HdlSimulator(rtl_sim)
             data = []
 
-            sim = HdlSimulator(rtl_sim)
-            # rtl_sim._set_trace_file("cntr.vcd", -1)
+            # rtl_sim.set_trace_file("cntr.vcd", -1)
             sim.run(CLK_PERIOD * 10.5,
                     extraProcesses=[
                         get_clk_driver(io.clk, CLK_PERIOD),
@@ -245,7 +247,7 @@ class VerilatorCntrTC(unittest.TestCase):
             data = []
 
             sim = HdlSimulator(rtl_sim)
-            # rtl_sim._set_trace_file("cntr.vcd", -1)
+            # rtl_sim.set_trace_file("cntr.vcd", -1)
             sim.run(CLK_PERIOD * 10.5,
                     extraProcesses=[
                         get_clk_driver(io.clk, CLK_PERIOD),
@@ -272,7 +274,7 @@ class VerilatorCntrTC(unittest.TestCase):
             data = []
 
             sim = HdlSimulator(rtl_sim)
-            # rtl_sim._set_trace_file(join(build_dir, "cntr.vcd"), -1)
+            # rtl_sim.set_trace_file(join(build_dir, "cntr.vcd"), -1)
             sim.run(CLK_PERIOD * 10.5,
                     extraProcesses=[
                         get_clk_driver(io.clk, CLK_PERIOD),
@@ -284,10 +286,29 @@ class VerilatorCntrTC(unittest.TestCase):
 
             self.assertSequenceEqual(data, REF_DATA)
 
+    def test_sim_normal_agents(self):
+        # build_dir = "tmp"
+        # if True:
+        with TemporaryDirectory() as build_dir:
+            rtl_sim = self.cntr_build(build_dir)
+            io = rtl_sim.io
+            sim = HdlSimulator(rtl_sim)
+            data = []
+            procs = [
+                *ClockAgent(io.clk).getDrivers(),
+                *PullDownAgent(io.rst).getDrivers(),
+                *PullUpAgent(io.en, initDelay=CLK_PERIOD).getDrivers(),
+                get_sync_sig_monitor(io.val, io.clk, io.rst, data)
+            ]
+            rtl_sim.set_trace_file(join(build_dir, "cntr.vcd"), -1)
+            sim.run(CLK_PERIOD * 10.5, extraProcesses=procs)
+
+            self.assertSequenceEqual(data, REF_DATA)
+
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    # suite.addTest(VerilatorCntrTC('test_sim_cntr_sync_pull_up_reset'))
+    #suite.addTest(VerilatorCntrTC('test_sim_normal_agents'))
     suite.addTest(unittest.makeSuite(VerilatorCntrTC))
     runner = unittest.TextTestRunner(verbosity=3)
     runner.run(suite)
