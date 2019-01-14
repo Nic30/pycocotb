@@ -127,9 +127,15 @@ REF_DATA = [
 ]
 
 
-class VerilatorTC(unittest.TestCase):
+class VerilatorCntrTC(unittest.TestCase):
+    """
+    Simple test of verilator simulation wrapper functionality
+    """
 
     def cntr_build(self, build_dir):
+        """
+        Build simulator for Cntr.v in specified dir
+        """
         accessible_signals = [
             # (signal_name, read_only, is_signed, type_width)
             ("clk", 0, 0, 1),
@@ -157,6 +163,9 @@ class VerilatorTC(unittest.TestCase):
         return cntrSimInstance
 
     def test_dual_build(self):
+        """
+        Test if simulation doe not interfere between each other
+        """
         with TemporaryDirectory() as build_dir0, TemporaryDirectory() as build_dir1:
             sim0 = self.cntr_build(build_dir0)
             sim1 = self.cntr_build(build_dir1)
@@ -278,7 +287,7 @@ class VerilatorTC(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    # suite.addTest(VerilatorTC('test_sim_cntr_sync_pull_up_reset'))
-    suite.addTest(unittest.makeSuite(VerilatorTC))
+    # suite.addTest(VerilatorCntrTC('test_sim_cntr_sync_pull_up_reset'))
+    suite.addTest(unittest.makeSuite(VerilatorCntrTC))
     runner = unittest.TextTestRunner(verbosity=3)
     runner.run(suite)
