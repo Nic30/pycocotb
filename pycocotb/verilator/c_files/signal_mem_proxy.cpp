@@ -63,10 +63,12 @@ SignalMemProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     self->value_cache = nullptr;
     self->signals_checked_for_change = nullptr;
     self->read_only_not_write_only = nullptr;
-    self->callbacks = new std::vector<PyObject*>();
-    if (self->callbacks == nullptr)
-        return nullptr;
-
+    self->callbacks = PyList_New(0);
+    if (self->callbacks == nullptr) {
+        PyErr_SetString(PyExc_MemoryError,
+        		"Can not create callback list for new instance of SignalMemProxy");
+    	return nullptr;
+    }
     return (PyObject *)self;
 }
 
@@ -117,6 +119,7 @@ SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args) {
 		PyErr_SetString(PyExc_ValueError, "Argument has to be an integer.");
 		return nullptr;
 	} else if(_PyLong_AsByteArray(val, self->signal, self->signal_bytes, 1, self->is_signed)) {
+		PyErr_SetString(PyExc_ValueError, "Argument can not convert value to byte[]");
     	return nullptr;
     }
 
@@ -132,7 +135,7 @@ SignalMemProxy_onChangeAdd(SignalMemProxy_t* self, PyObject* args) {
 	Py_INCREF(cb);
 
 	SignalMemProxy_cache_value(self);
-	self->callbacks->push_back(cb);
+	PyList_Append(self->callbacks, cb);
 	self->signals_checked_for_change->insert(self);
 
 	Py_RETURN_NONE;
@@ -149,9 +152,7 @@ bool SignalMemProxy_value_changed(SignalMemProxy_t* self) {
 static void
 SignalMemProxy_dealloc(SignalMemProxy_t* self)
 {
-	for (auto cb: *self->callbacks) {
-		Py_DECREF(cb);
-	}
+	Py_DECREF(self->callbacks);
 	delete self->callbacks;
 	delete[] self->value_cache;
 
@@ -169,15 +170,15 @@ static PyMethodDef SignalMemProxy_methods[] = {
         		"read value from signal"},
         {"write", (PyCFunction)SignalMemProxy_write, METH_VARARGS,
         		"write value to signal (signal can not be read only)"},
-		{"registerOnChangeCallback", (PyCFunction)SignalMemProxy_onChangeAdd, METH_VARARGS,
-				"add onChange callback function for this signal"},
+		{"wait", (PyCFunction)SignalMemProxy_onChangeAdd, METH_VARARGS,
+				"wait for change on this signal"},
         {nullptr}  /* Sentinel */
 };
 
 
 PyTypeObject SignalMemProxy_pytype = {
     PyVarObject_HEAD_INIT(nullptr, 0)
-    "SignalMemProxy",            /* tp_name */
+    "SignalMemProxy",           /* tp_name */
     sizeof(SignalMemProxy_t),   /* tp_basicsize */
     0,                          /* tp_itemsize */
 	(destructor)SignalMemProxy_dealloc, /* tp_dealloc */

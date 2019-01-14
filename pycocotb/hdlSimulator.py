@@ -203,8 +203,7 @@ class HdlSimulator():
                 self.schedule(self.now + ev.time, PRIORITY_URGENT, process)
                 break
             elif isinstance(ev, Event):
-                # reschedule with different priority
-                ev.process_to_wake.append(process)
+                ev.applyProcess(self, process)
                 break
             elif isgenerator(ev):
                 # else this process spotted new process

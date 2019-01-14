@@ -1,5 +1,5 @@
 from pycocotb.constants import CLK_PERIOD
-from pycocotb.triggers import Timer, WriteOnly
+from pycocotb.triggers import Timer, WriteOnly, Edge
 from inspect import isgeneratorfunction
 
 
@@ -36,20 +36,17 @@ class CallbackLoop(object):
     def setEnable(self, en, sim):
         self._enable = en
 
-    def onWriteCallback(self, sim):
-        if self._enable and self.shouldBeEnabledFn():
-            if self.isGenerator:
-                yield from self.fn(sim)
-            else:
-                self.fn(sim)
-
     def __call__(self, sim):
         """
         Process for injecting of this callback loop into simulator
         """
-        self.sig.registerOnChangeCallback(self.onWriteCallback)
-        return
-        yield
+        while True:
+            yield Edge(self.sig)
+            if self._enable and self.shouldBeEnabledFn():
+                if self.isGenerator:
+                    yield from self.fn(sim)
+                else:
+                    self.fn(sim)
 
 
 class OnRisingCallbackLoop(CallbackLoop):
@@ -58,13 +55,16 @@ class OnRisingCallbackLoop(CallbackLoop):
     as on rising callback for specified signal as soon as it is executed.
     """
 
-    def onWriteCallback(self, sim):
-        yield sim.waitReadOnly()
-        if self._enable and self.shouldBeEnabledFn() and int(self.sig.read()) == 1:
-            if self.isGenerator:
-                yield from self.fn(sim)
-            else:
-                self.fn(sim)
+    def __call__(self, sim):
+        while True:
+            yield Edge(self.sig)
+            if self._enable and self.shouldBeEnabledFn():
+                yield sim.waitReadOnly()
+                if int(self.sig.read()) == 1:
+                    if self.isGenerator:
+                        yield from self.fn(sim)
+                    else:
+                        self.fn(sim)
 
 
 class OnFallingCallbackLoop(CallbackLoop):
@@ -73,14 +73,16 @@ class OnFallingCallbackLoop(CallbackLoop):
     as on falling callback for specified signal as soon as it is executed.
     """
 
-    def onWriteCallback(self, sim):
-        yield sim.waitReadOnly()
-        if self._enable and self.shouldBeEnabledFn()\
-                and int(self.sig.read()) == 0:
-            if self.isGenerator:
-                yield from self.fn(sim)
-            else:
-                self.fn(sim)
+    def __call__(self, sim):
+        while True:
+            yield Edge(self.sig)
+            if self._enable and self.shouldBeEnabledFn():
+                yield sim.waitReadOnly()
+                if int(self.sig.read()) == 0:
+                    if self.isGenerator:
+                        yield from self.fn(sim)
+                    else:
+                        self.fn(sim)
 
 
 def oscilate(sig, period=CLK_PERIOD, initWait=0):

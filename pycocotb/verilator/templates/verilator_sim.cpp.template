@@ -36,7 +36,7 @@ public:
         (*__pause_sink)({SIM_EV_BEFORE_EDGE, &clkSig});
     }
     virtual ~{{top_name}}_wrap() {}
-};
+} VL_ATTR_ALIGNED(64);
 
 
 struct PySim_t {
@@ -176,8 +176,11 @@ static void reset_simulation_deltastep(PySim_t *self) {
 static void PySim_eval_event_triggers(PySim_t* self) {
     for (auto s: *self->event_triggering_signals) {
         if (SignalMemProxy_value_changed(s)) {
-            for (auto cb: *s->callbacks)
-                PyList_Append(self->pending_event_list, cb);
+        	_PyList_Extend(
+        			reinterpret_cast<PyListObject*>(self->pending_event_list),
+        			s->callbacks);
+            auto cbs = s->callbacks;
+        	PySequence_DelSlice(cbs, 0, PySequence_Length(cbs));
             SignalMemProxy_cache_value(s);
         }
     }
@@ -270,11 +273,16 @@ static PyGetSetDef PySim_getters_setters[] = {
 };
 
 static PyMemberDef PySim_members[] = {
-    {(char *)"_time", T_ULONGLONG, offsetof(PySim_t, time), 0, (char *)"actual simulation time"},
-	{(char *)"_COMB_UPDATE_DONE", T_INT, offsetof(PySim_t, COMB_UPDATE_DONE), 0, (char *)"all non edge dependent updates done"},
-	{(char *)"_BEFORE_EDGE", T_INT, offsetof(PySim_t, BEFORE_EDGE), 0, (char *)"before evaluation of edge dependent event"},
-    {(char *)"_END_OF_STEP", T_INT, offsetof(PySim_t, END_OF_STEP), 0, (char *)"all parts of circuit updated and stable"},
-    {(char *)"_pending_event_list", T_OBJECT, offsetof(PySim_t, pending_event_list), 0, (char *)"List of triggered callbacks"},
+    {(char *)"_time", T_ULONGLONG, offsetof(PySim_t, time), 0,
+    		(char *)"actual simulation time"},
+	{(char *)"_COMB_UPDATE_DONE", T_INT, offsetof(PySim_t, COMB_UPDATE_DONE), 0,
+			(char *)"all non edge dependent updates done"},
+	{(char *)"_BEFORE_EDGE", T_INT, offsetof(PySim_t, BEFORE_EDGE), 0,
+			(char *)"before evaluation of edge dependent event"},
+    {(char *)"_END_OF_STEP", T_INT, offsetof(PySim_t, END_OF_STEP), 0,
+    		(char *)"all parts of circuit updated and stable"},
+    {(char *)"_pending_event_list", T_OBJECT, offsetof(PySim_t, pending_event_list), 0,
+    		(char *)"List of triggered callbacks"},
     {nullptr}
 };
 

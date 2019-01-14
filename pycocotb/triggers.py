@@ -23,11 +23,25 @@ class Event():
     def destroy(self):
         self.process_to_wake = None
 
+    def applyProcess(self, sim, process):
+        self.process_to_wake.append(process)
+
     def __repr__(self):
         if self.debug_name is None:
             return super(Event, self).__repr__()
         else:
             return "<Event {} {:#018x}>".format(self.debug_name, id(self))
+
+
+class Edge(Event):
+    def __init__(self, signal: "RtlSignal"):
+        self.signal = signal
+
+    def applyProcess(self, sim, process):
+        self.signal.wait(process)
+
+
+# [TODO] RisingEdge/FallingEdge with support in c++ code
 
 
 class StopSimumulation(BaseException):
