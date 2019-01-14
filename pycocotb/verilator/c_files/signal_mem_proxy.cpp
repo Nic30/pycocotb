@@ -127,7 +127,7 @@ SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args) {
 }
 
 static PyObject *
-SignalMemProxy_onChangeAdd(SignalMemProxy_t* self, PyObject* args) {
+SignalMemProxy_wait(SignalMemProxy_t* self, PyObject* args) {
     PyObject * cb = nullptr;
 	if(!PyArg_ParseTuple(args, "O", &cb)) {
 		return nullptr;
@@ -153,7 +153,6 @@ static void
 SignalMemProxy_dealloc(SignalMemProxy_t* self)
 {
 	Py_DECREF(self->callbacks);
-	delete self->callbacks;
 	delete[] self->value_cache;
 
 	Py_XDECREF(self->name);
@@ -170,7 +169,7 @@ static PyMethodDef SignalMemProxy_methods[] = {
         		"read value from signal"},
         {"write", (PyCFunction)SignalMemProxy_write, METH_VARARGS,
         		"write value to signal (signal can not be read only)"},
-		{"wait", (PyCFunction)SignalMemProxy_onChangeAdd, METH_VARARGS,
+		{"wait", (PyCFunction)SignalMemProxy_wait, METH_VARARGS,
 				"wait for change on this signal"},
         {nullptr}  /* Sentinel */
 };
@@ -216,11 +215,11 @@ PyTypeObject SignalMemProxy_pytype = {
     0,                          /* tp_init */
     0,                          /* tp_alloc */
 	(newfunc)SignalMemProxy_new,/* tp_new */
-    0, // tp_free
-    0, // tp_is_gc
-    0, // tp_bases
-    0, // tp_mro
-    0, // tp_cache
-    0, // tp_subclasses
-    0, // tp_weaklist
+    0,                          // tp_free
+    0,                          // tp_is_gc
+    0,                          // tp_bases
+    0,                          // tp_mro
+    0,                          // tp_cache
+    0,                          // tp_subclasses
+    0,                          // tp_weaklist
 };

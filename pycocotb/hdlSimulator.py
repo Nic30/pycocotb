@@ -214,7 +214,7 @@ class HdlSimulator():
 
     def evalRtlEvents(self, parentPriotiry: int):
         rtl_sim = self.rtl_simulator
-        rtl_pending_event_list = rtl_sim._pending_event_list
+        rtl_pending_event_list = rtl_sim.pending_event_list
         if rtl_pending_event_list:
             # proper solution is to put triggered events to sim.
             # calendar with urgent priority  but we evaluate
@@ -257,7 +257,7 @@ class HdlSimulator():
                 now, priority, process = next_event()
                 # print(now, priority, process)
                 assert now >= self.now, (now, process)
-                rtl_sim._time = self.now = now
+                rtl_sim.time = self.now = now
 
                 # process is Python generator or Event
                 if isinstance(process, Event):
@@ -284,8 +284,8 @@ class HdlSimulator():
     def onAfterWriteOnly(self):
         self._writeOnlyEv = None
         sim = self.rtl_simulator
-        s = sim._eval()
-        assert s == sim._COMB_UPDATE_DONE
+        s = sim.eval()
+        assert s == sim.COMB_UPDATE_DONE
         self.evalRtlEvents(WriteOnly.PRIORITY)
         # spot ReadOnly event without waiting on it
         self.waitReadOnly()
@@ -304,7 +304,7 @@ class HdlSimulator():
         if self._writeOnlyEv is not None:
             # if write in this time stamp is required we have to reevaluate
             # the combinational logic
-            self.rtl_simulator._reset_eval()
+            self.rtl_simulator.reset_eval()
         self.waitCombStable()
 
     def waitCombStable(self):
@@ -319,11 +319,11 @@ class HdlSimulator():
     def onFinishRtlStep(self):
         self._combStableEv = None
         sim = self.rtl_simulator
-        END = sim._END_OF_STEP
-        _eval = sim._eval
+        END = sim.END_OF_STEP
+        _eval = sim.eval
         while True:
             ret = _eval()
-            if sim._pending_event_list:
+            if sim.pending_event_list:
                 self.evalRtlEvents(AllStable.PRIORITY)
             if ret == END:
                 break
@@ -341,7 +341,7 @@ class HdlSimulator():
 
     def onAfterStep(self):
         self._allStableEv = None
-        self.rtl_simulator._set_write_only()
+        self.rtl_simulator.set_write_only()
 
     def add_process(self, proc) -> None:
         """

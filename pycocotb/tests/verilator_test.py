@@ -149,8 +149,9 @@ class VerilatorTC(unittest.TestCase):
         cntr_cls = cntr_module.Cntr
 
         cntrSimInstance = cntr_cls()
+        io = cntrSimInstance.io
         for sigName, _, _, _ in accessible_signals:
-            sig = getattr(cntrSimInstance, sigName)
+            sig = getattr(io, sigName)
             self.assertEqual(sig.name, sigName)
 
         return cntrSimInstance
@@ -169,14 +170,14 @@ class VerilatorTC(unittest.TestCase):
         # if True:
         with TemporaryDirectory() as build_dir:
             rtl_sim = self.cntr_build(build_dir)
-
+            io = rtl_sim.io
             data = []
 
             def data_collector(sim):
                 yield Timer(CLK_PERIOD // 2)
                 assert sim.now == CLK_PERIOD // 2
 
-                val = rtl_sim.val
+                val = io.val
                 while True:
                     yield Timer(CLK_PERIOD)
                     yield sim.waitReadOnly()
@@ -186,9 +187,9 @@ class VerilatorTC(unittest.TestCase):
             # rtl_sim._set_trace_file("cntr.vcd", -1)
             sim.run(CLK_PERIOD * 10.5,
                     extraProcesses=[
-                        get_clk_driver(rtl_sim.clk, CLK_PERIOD),
-                        get_rst_driver(rtl_sim.rst, CLK_PERIOD),
-                        get_pull_up_driver(rtl_sim.en, CLK_PERIOD),
+                        get_clk_driver(io.clk, CLK_PERIOD),
+                        get_rst_driver(io.rst, CLK_PERIOD),
+                        get_pull_up_driver(io.en, CLK_PERIOD),
                         data_collector
                         ]
                     )
@@ -205,17 +206,17 @@ class VerilatorTC(unittest.TestCase):
         # if True:
         with TemporaryDirectory() as build_dir:
             rtl_sim = self.cntr_build(build_dir)
-
+            io = rtl_sim.io
             data = []
 
             sim = HdlSimulator(rtl_sim)
             # rtl_sim._set_trace_file("cntr.vcd", -1)
             sim.run(CLK_PERIOD * 10.5,
                     extraProcesses=[
-                        get_clk_driver(rtl_sim.clk, CLK_PERIOD),
-                        get_rst_driver(rtl_sim.rst, CLK_PERIOD),
-                        get_pull_up_driver(rtl_sim.en, CLK_PERIOD),
-                        get_sync_sig_monitor(rtl_sim.val, rtl_sim.clk, rtl_sim.rst, data)
+                        get_clk_driver(io.clk, CLK_PERIOD),
+                        get_rst_driver(io.rst, CLK_PERIOD),
+                        get_pull_up_driver(io.en, CLK_PERIOD),
+                        get_sync_sig_monitor(io.val, io.clk, io.rst, data)
                         ]
                     )
 
@@ -231,17 +232,17 @@ class VerilatorTC(unittest.TestCase):
         # if True:
         with TemporaryDirectory() as build_dir:
             rtl_sim = self.cntr_build(build_dir)
-
+            io = rtl_sim.io
             data = []
 
             sim = HdlSimulator(rtl_sim)
             # rtl_sim._set_trace_file("cntr.vcd", -1)
             sim.run(CLK_PERIOD * 10.5,
                     extraProcesses=[
-                        get_clk_driver(rtl_sim.clk, CLK_PERIOD),
-                        get_rst_driver(rtl_sim.rst, CLK_PERIOD),
-                        get_pull_up_driver_with_reset(rtl_sim.en, rtl_sim.rst, CLK_PERIOD),
-                        get_sync_sig_monitor(rtl_sim.val, rtl_sim.clk, rtl_sim.rst, data)
+                        get_clk_driver(io.clk, CLK_PERIOD),
+                        get_rst_driver(io.rst, CLK_PERIOD),
+                        get_pull_up_driver_with_reset(io.en, io.rst, CLK_PERIOD),
+                        get_sync_sig_monitor(io.val, io.clk, io.rst, data)
                         ]
                     )
 
@@ -258,17 +259,17 @@ class VerilatorTC(unittest.TestCase):
         # if True:
         with TemporaryDirectory() as build_dir:
             rtl_sim = self.cntr_build(build_dir)
-
+            io = rtl_sim.io
             data = []
 
             sim = HdlSimulator(rtl_sim)
             # rtl_sim._set_trace_file(join(build_dir, "cntr.vcd"), -1)
             sim.run(CLK_PERIOD * 10.5,
                     extraProcesses=[
-                        get_clk_driver(rtl_sim.clk, CLK_PERIOD),
-                        get_rst_driver(rtl_sim.rst, CLK_PERIOD),
-                        *get_sync_pull_up_driver_with_reset(rtl_sim.en, rtl_sim.clk, rtl_sim.rst),
-                        get_sync_sig_monitor(rtl_sim.val, rtl_sim.clk, rtl_sim.rst, data)
+                        get_clk_driver(io.clk, CLK_PERIOD),
+                        get_rst_driver(io.rst, CLK_PERIOD),
+                        *get_sync_pull_up_driver_with_reset(io.en, io.clk, io.rst),
+                        get_sync_sig_monitor(io.val, io.clk, io.rst, data)
                         ]
                     )
 

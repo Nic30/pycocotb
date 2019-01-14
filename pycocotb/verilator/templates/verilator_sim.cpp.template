@@ -2,9 +2,9 @@
 
 #include "V{{top_name}}.h"
 #include "V{{top_name}}__Syms.h"
-#include <iostream>
 
 
+////////////////////////////////////////////// sim wrapper //////////////////////////////////////////////
 class {{top_name}}_wrap: public V{{top_name}} {
 public:
     sim_step_t::push_type* __pause_sink;
@@ -38,7 +38,72 @@ public:
     virtual ~{{top_name}}_wrap() {}
 } VL_ATTR_ALIGNED(64);
 
+///////////////////////////////////////////// PySimIo //////////////////////////////////////////////////////
+struct PySimIo_t {
+	PyObject_HEAD
+    PyObject * proxies[{{accessible_signals|length }}];
+};
 
+static PyMemberDef PySimIo_members[] = {
+	{% for signal_name, _, _, _ in accessible_signals %}
+	     {(char *)"{{signal_name}}", T_OBJECT, offsetof(PySimIo_t, proxies) + {{loop.index - 1}} * sizeof(PyObject *), 0,
+	            (char *)"simulation proxy for clk signal {{signal_name}}"},
+	{% endfor %}
+	{nullptr}
+};
+
+static PyObject * PySimIo_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+	PySimIo_t * self = (PySimIo_t *) type->tp_alloc(type, 0);
+    if (self) {
+        for (size_t i = 0; i < {{accessible_signals|length }}; i++) {
+        	Py_INCREF(Py_None);
+        	self->proxies[i] = Py_None;
+        }
+    }
+    return (PyObject *) self;
+}
+static PyTypeObject PySimIo_pytype = {
+    PyVarObject_HEAD_INIT(nullptr, 0)
+    "PySimIo",          /* tp_name */
+    sizeof(PySimIo_t),  /* tp_basicsize */
+    0,                  /* tp_itemsize */
+    0,                  /* tp_dealloc */
+    0,                  /* tp_print */
+    0,                  /* tp_getattr */
+    0,                  /* tp_setattr */
+    0,                  /* tp_reserved */
+    0,                  /* tp_repr */
+    0,                  /* tp_as_number */
+    0,                  /* tp_as_sequence */
+    0,                  /* tp_as_mapping */
+    0,                  /* tp_hash  */
+    0,                  /* tp_call */
+    0,                  /* tp_str */
+    0,                  /* tp_getattro */
+    0,                  /* tp_setattro */
+    0,                  /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT, /* tp_flags */
+    "Container for signals in simulation", /* tp_doc */
+    0,                  /* tp_traverse */
+    0,                  /* tp_clear */
+    0,                  /* tp_richcompare */
+    0,                  /* tp_weaklistoffset */
+    0,                  /* tp_iter */
+    0,                  /* tp_iternext */
+    0,                  /* tp_methods */
+    PySimIo_members,    /* tp_members */
+    0,                  /* tp_getset */
+    0,                  /* tp_base */
+    0,                  /* tp_dict */
+    0,                  /* tp_descr_get */
+    0,                  /* tp_descr_set */
+    0,                  /* tp_dictoffset */
+    0,                  /* tp_init */
+    0,                  /* tp_alloc */
+	PySimIo_new,        /* tp_new */
+};
+
+///////////////////////////////////// PySim_t //////////////////////////////////////////////////
 struct PySim_t {
     PyObject_HEAD
     // simulator of DUT
@@ -58,9 +123,11 @@ struct PySim_t {
     PyObject * pending_event_list;
     // Current simulation time
     vluint64_t time;
+    // constants
     int COMB_UPDATE_DONE;
     int BEFORE_EDGE;
     int END_OF_STEP;
+    PyObject * io; // object to store signal proxies under it's names 
     
 };
 
@@ -99,16 +166,33 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
         self->actual_sim_step = nullptr;
         self->read_only_not_write_only = false;
 
+        Py_INCREF((PyObject*)&PySimIo_pytype);
+        self->io = PyObject_CallObject(reinterpret_cast<PyObject*>(&PySimIo_pytype), nullptr);
+        if (!self->io) {
+        	PyErr_SetString(PyExc_AssertionError,
+        	        	    "Can not create simulation io");
+        	return nullptr;
+        }
+        
         SignalMemProxy_t *proxy = nullptr;
-    {% for signal_name, read_only, is_signed, type_width in accessible_signals %}
+   {% for signal_name, read_only, is_signed, type_width in accessible_signals %}
         Py_INCREF((PyObject*)&SignalMemProxy_pytype);
-        proxy =(SignalMemProxy_t *) PyObject_CallObject((PyObject*)&SignalMemProxy_pytype, nullptr);
+        proxy = (SignalMemProxy_t *) PyObject_CallObject((PyObject*)&SignalMemProxy_pytype, nullptr);
+        if (!proxy) {
+        	PyErr_SetString(PyExc_AssertionError,
+        	           		"Can not create signal proxy for {{signal_name}}");
+        	return nullptr;
+        }
         SignalMemProxy_c_init(proxy, true,
                 reinterpret_cast<uint8_t*>(&self->dut->{{signal_name}}),
                 {{type_width}}, {{is_signed}}, "{{signal_name}}", self->event_triggering_signals,
 				&self->read_only_not_write_only);
         self->signals->push_back(proxy);
-
+        if (PyObject_SetAttrString(self->io, "{{signal_name}}", reinterpret_cast<PyObject*>(proxy))) {
+            PyErr_SetString(PyExc_AssertionError,
+            		"Can not add signal proxy for {{signal_name}} to io of simulator");
+            return nullptr;
+        }
     {% endfor %}
 
         self->time = 0;
@@ -244,54 +328,41 @@ static PyObject * PySim_set_write_only(PySim_t* self, PyObject* args) {
 }
 
 static PyMethodDef PySim_methods[] = {
-        {"_eval", (PyCFunction)PySim_eval, METH_NOARGS, "single simulation step"},
-		{"_reset_eval", (PyCFunction)PySim_reset_eval, METH_NOARGS, "reset evaluation"},
-        {"_set_trace_file", (PyCFunction)PySim_set_trace_file, METH_VARARGS,
+        {"eval", (PyCFunction)PySim_eval, METH_NOARGS, "single simulation step"},
+		{"reset_eval", (PyCFunction)PySim_reset_eval, METH_NOARGS, "reset evaluation"},
+        {"set_trace_file", (PyCFunction)PySim_set_trace_file, METH_VARARGS,
                 "set file where data from signals should be stored\n"
                 "\n"
                 ":param file_name: name of file where trace should be stored (path of vcd file f.e.)\n"
                 ":param trace_depth: number of hyerarchy levels which should be trraced (-1 = all)\n"
         },
-		{"_set_write_only", (PyCFunction)PySim_set_write_only, METH_NOARGS,
+		{"set_write_only", (PyCFunction)PySim_set_write_only, METH_NOARGS,
 				"set simulation to write only state, should be called before entering to new evaluation step"},
         {nullptr}  /* Sentinel */
 };
 
-PyObject * PySim_attr_simple_getter(PySim_t * self, void * closure) {
-    auto i = reinterpret_cast<size_t>(closure);
-    auto proxy = self->signals->at(i);
-    Py_INCREF(proxy);
-    return (PyObject*)proxy;
-}
-
-static PyGetSetDef PySim_getters_setters[] = {
-    {% for signal_name, _, _, _ in accessible_signals %}
-        {(char *)"{{signal_name}}", (getter)PySim_attr_simple_getter, nullptr,
-            (char *)"simulation proxy for clk signal {{signal_name}}", (void*){{ loop.index - 1 }}},
-    {% endfor %}
-        {nullptr}  /* Sentinel */
-};
-
 static PyMemberDef PySim_members[] = {
-    {(char *)"_time", T_ULONGLONG, offsetof(PySim_t, time), 0,
-    		(char *)"actual simulation time"},
-	{(char *)"_COMB_UPDATE_DONE", T_INT, offsetof(PySim_t, COMB_UPDATE_DONE), 0,
+	{(char *)"io", T_OBJECT, offsetof(PySim_t, io), 0,
+			(char *)"container of signals in simulation"},
+	{(char *)"time", T_ULONGLONG, offsetof(PySim_t, time), 0,
+    	(char *)"actual simulation time"},
+	{(char *)"COMB_UPDATE_DONE", T_INT, offsetof(PySim_t, COMB_UPDATE_DONE), 0,
 			(char *)"all non edge dependent updates done"},
-	{(char *)"_BEFORE_EDGE", T_INT, offsetof(PySim_t, BEFORE_EDGE), 0,
+	{(char *)"BEFORE_EDGE", T_INT, offsetof(PySim_t, BEFORE_EDGE), 0,
 			(char *)"before evaluation of edge dependent event"},
-    {(char *)"_END_OF_STEP", T_INT, offsetof(PySim_t, END_OF_STEP), 0,
+    {(char *)"END_OF_STEP", T_INT, offsetof(PySim_t, END_OF_STEP), 0,
     		(char *)"all parts of circuit updated and stable"},
-    {(char *)"_pending_event_list", T_OBJECT, offsetof(PySim_t, pending_event_list), 0,
+    {(char *)"pending_event_list", T_OBJECT, offsetof(PySim_t, pending_event_list), 0,
     		(char *)"List of triggered callbacks"},
     {nullptr}
 };
 
 static PyTypeObject PySim_pytype = {
     PyVarObject_HEAD_INIT(nullptr, 0)
-    "{{module_name}}",            /* tp_name */
-    sizeof(PySim_t),   /* tp_basicsize */
+    "{{module_name}}",          /* tp_name */
+    sizeof(PySim_t),            /* tp_basicsize */
     0,                          /* tp_itemsize */
-    (destructor)PySim_dealloc,    /* tp_dealloc */
+    (destructor)PySim_dealloc,  /* tp_dealloc */
     0,                          /* tp_print */
     0,                          /* tp_getattr */
     0,                          /* tp_setattr */
@@ -308,16 +379,16 @@ static PyTypeObject PySim_pytype = {
     0,                          /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT |
         Py_TPFLAGS_BASETYPE,    /* tp_flags */
-    "RTL simulation wrapped in python c-extension",                   /* tp_doc */
+    "RTL simulation wrapped in python c-extension", /* tp_doc */
     0,                          /* tp_traverse */
     0,                          /* tp_clear */
     0,                          /* tp_richcompare */
     0,                          /* tp_weaklistoffset */
     0,                          /* tp_iter */
     0,                          /* tp_iternext */
-    PySim_methods,                /* tp_methods */
+    PySim_methods,              /* tp_methods */
     PySim_members,              /* tp_members */
-    PySim_getters_setters,        /* tp_getset */
+    0,                          /* tp_getset */
     0,                          /* tp_base */
     0,                          /* tp_dict */
     0,                          /* tp_descr_get */
@@ -325,10 +396,10 @@ static PyTypeObject PySim_pytype = {
     0,                          /* tp_dictoffset */
     0,                          /* tp_init */
     0,                          /* tp_alloc */
-    PySim_new,                    /* tp_new */
+    PySim_new,                  /* tp_new */
 };
 
-
+////////////////////////////////////  py module ////////////////////////////////////////
 static PyModuleDef PySim_module = {
     PyModuleDef_HEAD_INIT,
     "{{module_name}}",
@@ -339,15 +410,17 @@ static PyModuleDef PySim_module = {
 };
 
 PyMODINIT_FUNC PyInit_{{module_name}}(void) {
-    PyObject* m;
-
-    if (PyType_Ready(&PySim_pytype) < 0)
-        return nullptr;
 
     if (PyType_Ready(&SignalMemProxy_pytype) < 0)
         return nullptr;
 
-    m = PyModule_Create(&PySim_module);
+    if (PyType_Ready(&PySimIo_pytype) < 0)
+    	return nullptr;
+    
+    if (PyType_Ready(&PySim_pytype) < 0)
+        return nullptr;
+
+    PyObject* m = PyModule_Create(&PySim_module);
     if (!m)
         return nullptr;
 
