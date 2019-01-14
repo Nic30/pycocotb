@@ -1,5 +1,4 @@
-from pycocotb.constants import CLK_PERIOD
-from pycocotb.triggers import Timer, WriteOnly, Edge
+from pycocotb.triggers import Edge
 from inspect import isgeneratorfunction
 
 
