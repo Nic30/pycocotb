@@ -84,26 +84,3 @@ class OnFallingCallbackLoop(CallbackLoop):
                     else:
                         self.fn(sim)
 
-
-def oscilate(sig, period=CLK_PERIOD, initWait=0):
-    """
-    Oscillative simulation driver for your signal
-    (usually used as clk generator)
-    """
-
-    def oscillateStimul(sim):
-        yield sim.waitWriteOnly()
-        sig.write(0)
-        halfPeriod = period / 2.0
-        yield Timer(initWait)
-
-        while True:
-            yield Timer(halfPeriod)
-            yield sim.waitWriteOnly()
-            sig.write(1)
-
-            yield Timer(halfPeriod)
-            yield WriteOnly
-            sig.write(0)
-
-    return oscillateStimul
