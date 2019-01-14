@@ -1,43 +1,14 @@
-from hwt.hdl.constants import Time
-from hwt.simulator.agentBase import AgentBase
+from pycocotb.agents.base import AgentBase
+from pycocotb.constants import CLK_PERIOD
 from pycocotb.triggers import Timer
 
 
-def pullDownAfter(sig, initDelay=6 * Time.ns):
-    """
-    :return: simulation driver which keeps signal value high for initDelay
-        then it sets value to 0
-    """
-    initDelay = Timer(initDelay)
-
-    def _pullDownAfter(sim):
-        yield sim.waitWriteOnly()
-        sig.write(1)
-        yield initDelay
-
-        yield sim.waitWriteOnly()
-        sig.write(0)
-
-    return _pullDownAfter
-
-
-def pullUpAfter(sig, initDelay=6 * Time.ns):
-    """
-    :return: Simulation driver which keeps signal value low for initDelay then
-        it sets value to 1
-    """
-    intiDelay = Timer(initDelay)
-
-    def _pullDownAfter(sim):
-        sig.write(0)
-        yield intiDelay
-        sig.write(1)
-
-    return _pullDownAfter
-
-
 class PullUpAgent(AgentBase):
-    def __init__(self, intf, initDelay=6 * Time.ns):
+    """
+    After specified time value of the signal is set to 1
+    :note: usually used for negated reset
+    """
+    def __init__(self, intf, initDelay=0.6 * CLK_PERIOD):
         self.initDelay = initDelay
         self.intf = intf
         self.data = []
@@ -52,7 +23,12 @@ class PullUpAgent(AgentBase):
 
 
 class PullDownAgent(AgentBase):
-    def __init__(self, intf, initDelay=6 * Time.ns):
+    """
+    After specified time value of the signal is set to 0
+    :note: usually used for reset
+    """
+
+    def __init__(self, intf, initDelay=0.6 * CLK_PERIOD):
         self.initDelay = initDelay
         self.intf = intf
         self.data = []

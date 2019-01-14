@@ -1,7 +1,8 @@
-from hwt.hdl.constants import CLK_PERIOD
-from hwt.simulator.agentBase import AgentBase
+from pycocotb.agents.base import AgentBase
+from pycocotb.constants import CLK_PERIOD
 from pycocotb.process_utils import CallbackLoop
 from pycocotb.triggers import Timer
+
 
 DEFAULT_CLOCK = CLK_PERIOD
 
@@ -23,7 +24,6 @@ class ClockAgent(AgentBase):
         super(ClockAgent, self).__init__(intf)
         self.period = period
         self.initWait = 0
-        self.intf = self.intf._sigInside
         self.monitor = CallbackLoop(self.intf, self.monitor, self.getEnable)
 
     def driver(self, sim):
