@@ -1,7 +1,7 @@
 # PyCOCOTB
 
 [![Build Status](https://travis-ci.org/Nic30/pycocotb.svg?branch=master)](https://travis-ci.org/Nic30/pycocotb)
-[![Build status](https://ci.appveyor.com/api/projects/status/oy1ciuqhuax6vt4u?svg=true)](https://ci.appveyor.com/project/nic30/pycocotb)
+[![Build status](https://ci.appveyor.com/api/projects/status/b8y6u2pwjm5eh8n4/branch/master?svg=true)](https://ci.appveyor.com/project/Nic3084362/hardwareir/branch/master)
 [![Coverage Status](https://coveralls.io/repos/github/Nic30/pycocotb/badge.svg?branch=master)](https://coveralls.io/github/Nic30/pycocotb?branch=master)
 
 [COCOTB](https://github.com/potentialventures/cocotb) like HDL simulation environment where simulation is driven from Python. 
