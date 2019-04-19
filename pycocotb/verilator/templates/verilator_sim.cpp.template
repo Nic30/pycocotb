@@ -1,5 +1,5 @@
 #include "pycocotb_common.h"
-
+#include <iostream>
 #include "V{{top_name}}.h"
 #include "V{{top_name}}__Syms.h"
 
@@ -13,6 +13,7 @@ public:
     {{top_name}}_wrap(): V{{top_name}}("{{top_name}}"), __pause_sink(nullptr),
     		__comb_update_triggered(false) {
     }
+    {{top_name}}_wrap(const {{top_name}}_wrap &) = delete;
     void eval() {
     	V{{top_name}}__Syms* __restrict vlSymsp = this->__VlSymsp;
     	__comb_update_triggered = false;
@@ -35,8 +36,9 @@ public:
 
         (*__pause_sink)({SIM_EV_BEFORE_EDGE, &clkSig});
     }
-    virtual ~{{top_name}}_wrap() {}
-} VL_ATTR_ALIGNED(64);
+    virtual ~{{top_name}}_wrap() {
+    }
+} VL_ATTR_ALIGNED(128);
 
 ///////////////////////////////////////////// PySimIo //////////////////////////////////////////////////////
 struct PySimIo_t {
@@ -131,6 +133,28 @@ struct PySim_t {
     
 };
 
+static int PySim_add_proxy(const char * signal_name, uint8_t * sig_addr, size_t type_width, bool is_signed,
+			const bool * read_only_not_write_only, PyObject * io, std::vector<SignalMemProxy_t*> & signals,
+			std::unordered_set<SignalMemProxy_t*> & event_triggering_signals) {
+	    Py_INCREF((PyObject*)&SignalMemProxy_pytype);
+        SignalMemProxy_t * proxy = (SignalMemProxy_t *) PyObject_CallObject(
+        	(PyObject*)&SignalMemProxy_pytype, nullptr);
+        if (!proxy) {
+        	PyErr_SetString(PyExc_AssertionError, "Can not create signal proxy");
+        	return -1;
+        }
+        SignalMemProxy_c_init(proxy, true, sig_addr,
+                type_width, is_signed, signal_name, &event_triggering_signals,
+				read_only_not_write_only);
+        signals.push_back(proxy);
+        if (PyObject_SetAttrString(io, signal_name, reinterpret_cast<PyObject*>(proxy))) {
+            PyErr_SetString(PyExc_AssertionError,
+            		"Can not add signal proxy to io of simulator");
+            return -1;
+        }
+        return 0;
+}
+
 static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     static char *kwlist[] = {nullptr};
 	if(!PyArg_ParseTupleAndKeywords(args, kwds, "", kwlist)) {
@@ -173,26 +197,12 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
         	        	    "Can not create simulation io");
         	return nullptr;
         }
-        
-        SignalMemProxy_t *proxy = nullptr;
-   {% for signal_name, read_only, is_signed, type_width in accessible_signals %}
-        Py_INCREF((PyObject*)&SignalMemProxy_pytype);
-        proxy = (SignalMemProxy_t *) PyObject_CallObject((PyObject*)&SignalMemProxy_pytype, nullptr);
-        if (!proxy) {
-        	PyErr_SetString(PyExc_AssertionError,
-        	           		"Can not create signal proxy for {{signal_name}}");
-        	return nullptr;
-        }
-        SignalMemProxy_c_init(proxy, true,
-                reinterpret_cast<uint8_t*>(&self->dut->{{signal_name}}),
-                {{type_width}}, {{is_signed}}, "{{signal_name}}", self->event_triggering_signals,
-				&self->read_only_not_write_only);
-        self->signals->push_back(proxy);
-        if (PyObject_SetAttrString(self->io, "{{signal_name}}", reinterpret_cast<PyObject*>(proxy))) {
-            PyErr_SetString(PyExc_AssertionError,
-            		"Can not add signal proxy for {{signal_name}} to io of simulator");
-            return nullptr;
-        }
+    {% for signal_name, read_only, is_signed, type_width in accessible_signals %}
+		if(PySim_add_proxy("{{signal_name}}", reinterpret_cast<uint8_t*>(&self->dut->{{signal_name}}),
+			{{type_width}}, {{is_signed}}, &self->read_only_not_write_only, self->io, *self->signals,
+			*self->event_triggering_signals) < 0) {
+				return nullptr;
+		}
     {% endfor %}
 
         self->time = 0;
@@ -246,12 +256,13 @@ static void call_eval_sim(sim_step_t::push_type &sink, {{top_name}}_wrap * sim) 
 
 static void reset_simulation_deltastep(PySim_t *self) {
     using std::placeholders::_1;
-    if (self->actual_sim_step)
+    {{top_name}}_wrap * dut = self->dut;
+    if (self->actual_sim_step) {
         delete self->actual_sim_step;
+    }
     // _1 means first parameter of call_eval will be sim
     // when coroutine obj. is constructed function is evaluated
     // until sink is triggered
-    {{top_name}}_wrap * dut = self->dut;
     self->actual_sim_step = new sim_step_t::pull_type(
             std::bind(call_eval_sim, _1, dut)
     );
