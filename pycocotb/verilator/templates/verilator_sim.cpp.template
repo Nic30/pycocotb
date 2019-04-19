@@ -14,7 +14,7 @@ public:
     		__comb_update_triggered(false) {
     }
     void eval() {
-    	VCntr__Syms* __restrict vlSymsp = this->__VlSymsp;
+    	V{{top_name}}__Syms* __restrict vlSymsp = this->__VlSymsp;
     	__comb_update_triggered = false;
     	// [TODO]
     	_eval_settle(vlSymsp);
