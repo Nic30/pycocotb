@@ -43,6 +43,7 @@ install:
   # install verilator
   - git clone http://git.veripool.org/git/verilator
   - cd verilator
+  - git checkout 47107a5a36e9562144ec13d4f7821942cf767b21
   # fake account to apply the patches
   - git config user.email "fake@example.com"
   - git config user.name "fake name"
