@@ -1,5 +1,5 @@
 #include "pycocotb_common.h"
-#include <iostream>
+
 #include "V{{top_name}}.h"
 #include "V{{top_name}}__Syms.h"
 
@@ -129,8 +129,7 @@ struct PySim_t {
     int COMB_UPDATE_DONE;
     int BEFORE_EDGE;
     int END_OF_STEP;
-    PyObject * io; // object to store signal proxies under it's names 
-    
+    PyObject * io; // object to store signal proxies under it's names
 };
 
 static int PySim_add_proxy(const char * signal_name, uint8_t * sig_addr, size_t type_width, bool is_signed,
@@ -216,20 +215,37 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
             return nullptr;
         }
     }
-
     return (PyObject *)self;
 }
 
-static void PySim_dealloc(PySim_t* self) {
+static PyObject * PySim_finalize(PySim_t* self, PyObject* args) {
+   	for (auto s: *self->signals) {
+   		auto cbs = s->callbacks;
+        auto len = PySequence_Length(cbs);
+        if (len > 0) {
+			if (PySequence_DelSlice(cbs, 0, len) < 0) {
+				return nullptr;
+	        }
+	    }
+   	}
+   	delete self->actual_sim_step;
+    self->actual_sim_step = nullptr;
     self->dut->final();
         
     if (self->tfp) {
+    	self->tfp->flush();
         self->tfp->close();
         delete self->tfp;
         self->tfp = nullptr;
         free(self->trace_file_name);
         self->trace_file_name = nullptr;
     }
+	Py_RETURN_NONE;
+}
+
+static void PySim_dealloc(PySim_t* self) {
+	auto res = PySim_finalize(self, nullptr);
+	Py_DECREF(res);
 
     delete self->event_triggering_signals;
       
@@ -239,8 +255,6 @@ static void PySim_dealloc(PySim_t* self) {
     }
     delete self->signals;
       
-    if (self->actual_sim_step)
-    	delete self->actual_sim_step;
 
     delete self->dut;
 
@@ -268,17 +282,23 @@ static void reset_simulation_deltastep(PySim_t *self) {
     );
 }
 
-static void PySim_eval_event_triggers(PySim_t* self) {
+static int PySim_eval_event_triggers(PySim_t* self) {
     for (auto s: *self->event_triggering_signals) {
         if (SignalMemProxy_value_changed(s)) {
         	_PyList_Extend(
         			reinterpret_cast<PyListObject*>(self->pending_event_list),
         			s->callbacks);
             auto cbs = s->callbacks;
-        	PySequence_DelSlice(cbs, 0, PySequence_Length(cbs));
+        	auto len = PySequence_Length(cbs);
+            if (len > 0) {
+				if (PySequence_DelSlice(cbs, 0, len) < 0) {
+					return -1;
+            	}
+            }
             SignalMemProxy_cache_value(s);
         }
     }
+    return 0;
 }
 
 static PyObject * PySim_reset_eval(PySim_t* self, PyObject* args) {
@@ -299,34 +319,38 @@ static PyObject * PySim_eval(PySim_t* self, PyObject* args) {
     }
     self->read_only_not_write_only = true;
 
-    
-    PySim_eval_event_triggers(self);
+    if (PySim_eval_event_triggers(self) < 0)
+    	return nullptr;
     auto end_type = self->actual_sim_step->get().first;
     // Dump trace data for this step
-    if (end_type ==  SIM_EV_END_OF_STEP && self->tfp)
+    if (end_type == SIM_EV_END_OF_STEP && self->tfp) {
         self->tfp->dump(self->time);
+    }
     return PyLong_FromLong(end_type);
 }
 
 static PyObject * PySim_set_trace_file(PySim_t* self, PyObject* args) {
     char * trace_file = nullptr;
-    int trace_level = -1;
+    int trace_level = 99;
     if (!PyArg_ParseTuple(args, "si", &trace_file, &trace_level))
         return nullptr;
 
     if (self->tfp != nullptr && strcmp(self->trace_file_name, trace_file) != 0) {
         // different trace file will be used now
-        self->tfp->close();
+        self->tfp->close();Verilated::traceEverOn(true);
+        delete self->tfp;
         self->tfp = nullptr;
         free(self->trace_file_name);
     }
         
     if (self->tfp == nullptr) {
+        Verilated::traceEverOn(true);
         self->trace_file_name = strdup(trace_file);
         Verilated::traceEverOn(true);  // Verilator must compute traced signals
         self->tfp = new VerilatedVcdC;
         self->dut->trace(self->tfp, trace_level);  // Trace x levels of hierarchy
         self->tfp->open(self->trace_file_name);  // Open the dump file
+        self->tfp->dump(0);
     }
 
 	Py_RETURN_NONE;
@@ -349,6 +373,7 @@ static PyMethodDef PySim_methods[] = {
         },
 		{"set_write_only", (PyCFunction)PySim_set_write_only, METH_NOARGS,
 				"set simulation to write only state, should be called before entering to new evaluation step"},
+        {"finalize", (PyCFunction)PySim_finalize, METH_NOARGS, "flush output and clean all pending actions"},
         {nullptr}  /* Sentinel */
 };
 
