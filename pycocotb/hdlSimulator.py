@@ -293,6 +293,8 @@ class HdlSimulator():
     def waitReadOnly(self):
         e = self._readOnlyEv
         if e is None:
+            # ensure there is WriteOnly event prepared
+            self.waitWriteOnly()
             e = self._readOnlyEv = Event("ReadOnly")
             e.afterCb = self.onAfterReadOnly
             self.schedule(self.now, ReadOnly.PRIORITY, e)
