@@ -40,9 +40,9 @@ class VerilatorHierarchyTC(unittest.TestCase):
         return build_sim(files, accessible_signals, self, build_dir, "HandshakedFifo")
     
     def test_sim_HandshakedFifo(self):
-        build_dir = "tmp"
-        if True:
-        # with TemporaryDirectory() as build_dir:
+        # build_dir = "tmp"
+        # if True:
+        with TemporaryDirectory() as build_dir:
             rtl_sim = self.build_sim(build_dir)
             io = rtl_sim.io
             sim = HdlSimulator(rtl_sim)
