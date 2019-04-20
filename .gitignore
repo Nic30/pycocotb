@@ -3,6 +3,8 @@
 *.a
 *.o
 .pyc
+pycocotb.egg-info
+build/
 
 # eclipse project
 .project
