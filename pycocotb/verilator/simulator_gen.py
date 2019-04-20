@@ -59,7 +59,7 @@ DEFAULT_EXTENSION_EXTRA_ARGS = {
     "library_dirs": [IN_PLACE_LIB_DIR, INSTALLED_LIB_DIR],
     "extra_compile_args": [
         "-std=c++11",
-        "-faligned-new"
+        #"-faligned-new"
     ],
 }
 
