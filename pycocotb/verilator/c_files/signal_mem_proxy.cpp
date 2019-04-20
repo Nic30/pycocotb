@@ -7,7 +7,7 @@ static inline uint8_t MASK(uint8_t bits) {
 }
 
 inline void SET_INVALID(void * d, size_t size) {
-// [TODO] use random generator of the parent component
+	// [TODO] use random generator of the parent component
 	memset(d, 0, size);
 }
 

@@ -5,7 +5,9 @@ import os
 COCOPY_SRC_DIR = os.path.join(
     os.path.dirname(__file__),
     "pycocotb", "verilator", "c_files")
-COCOPY_SRCS = [os.path.join(COCOPY_SRC_DIR, "signal_mem_proxy.cpp"), ]
+COCOPY_SRCS = [os.path.join(COCOPY_SRC_DIR, "signal_mem_proxy.cpp"),
+               os.path.join(COCOPY_SRC_DIR, "sim_io.cpp"),
+               os.path.join(COCOPY_SRC_DIR, "pycocotb_sim.cpp") ]
 VERILATOR_ROOT = "/usr/local/share/verilator"
 VERILATOR_INCLUDE_DIR = os.path.join(VERILATOR_ROOT, "include")
 VERILATOR_SOURCES = [
@@ -16,7 +18,7 @@ VERILATOR_SOURCES = [
 verilator_common = Library(
     "pycocotb.verilator.common",
     sources=COCOPY_SRCS + VERILATOR_SOURCES,
-    extra_compile_args=["-std=c++11", ],
+    extra_compile_args=["-std=c++17", "-I" + VERILATOR_INCLUDE_DIR],
 )
 
 setup(
