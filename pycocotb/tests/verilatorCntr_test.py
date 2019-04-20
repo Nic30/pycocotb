@@ -1,119 +1,16 @@
-import unittest
+from os.path import join
 from tempfile import TemporaryDirectory
-from pycocotb.verilator.simulator_gen import generatePythonModuleWrapper, \
-    loadPythonCExtensionFromFile, verilatorCompile
-from os.path import abspath, dirname, join
-from pycocotb.hdlSimulator import HdlSimulator
-from pycocotb.triggers import Timer
-from pycocotb.constants import CLK_PERIOD
-from pycocotb.process_utils import OnRisingCallbackLoop
-from pycocotb.agents.rst import PullDownAgent, PullUpAgent
+import unittest
+
 from pycocotb.agents.clk import ClockAgent
-
-VERILOG_SRCS = dirname(abspath(__file__))
-
-
-def get_clk_driver(clk, clk_period):
-
-    def clk_driver(sim):
-        while True:
-            yield sim.waitWriteOnly()
-            clk.write(0)
-
-            yield Timer(clk_period // 2)
-            yield sim.waitWriteOnly()
-
-            clk.write(1)
-            yield Timer(clk_period // 2)
-
-    return clk_driver
-
-
-def get_rst_driver(rst, delay):
-
-    def rst_driver(sim):
-        yield sim.waitWriteOnly()
-        assert sim.now == 0
-        rst.write(1)
-
-        yield Timer(delay)
-        assert sim.now == delay
-        yield sim.waitWriteOnly()
-        assert sim.now == delay
-        rst.write(0)
-
-    return rst_driver
-
-
-def get_pull_up_driver(sig, delay):
-
-    def pull_up_after(sim):
-        yield sim.waitWriteOnly()
-        sig.write(0)
-
-        yield Timer(delay)
-        assert sim.now == delay
-        yield sim.waitWriteOnly()
-        sig.write(1)
-
-    return pull_up_after
-
-
-def get_pull_up_driver_with_reset(sig, reset, clk_period):
-
-    def pull_up_after(sim):
-        exp_t = 0
-        yield sim.waitWriteOnly()
-        sig.write(0)
-        assert sim.now == exp_t
-
-        while True:
-            yield sim.waitReadOnly()
-            if not reset.read():
-                assert sim.now == exp_t
-                yield sim.waitWriteOnly()
-                sig.write(1)
-                return
-            else:
-                yield Timer(clk_period)
-                exp_t += clk_period
-
-    return pull_up_after
-
-
-def get_sync_pull_up_driver_with_reset(sig, clk, rst):
-
-    def init(sim):
-        yield sim.waitWriteOnly()
-        sig.write(0)
-        assert sim.now == 0
-
-    def pull_up_after(sim):
-        exp_t = sim.now
-        yield sim.waitReadOnly()
-        assert sim.now == exp_t
-
-        if not rst.read():
-            yield sim.waitWriteOnly()
-            sig.write(1)
-            assert sim.now == exp_t
-
-    return [
-        init,
-        OnRisingCallbackLoop(clk, pull_up_after, lambda: True),
-    ]
-
-
-def get_sync_sig_monitor(sig, clk, rst, result):
-
-    def monitorWithClk(sim):
-        # if clock is specified this function is periodically called every
-        # clk tick
-        yield sim.waitReadOnly()
-        if not rst.read():
-            result.append((sim.now, int(sig.read())))
-
-    return OnRisingCallbackLoop(clk, monitorWithClk, lambda: True)
+from pycocotb.agents.rst import PullDownAgent, PullUpAgent
+from pycocotb.constants import CLK_PERIOD
+from pycocotb.hdlSimulator import HdlSimulator
+from pycocotb.tests.common import build_sim
+from pycocotb.tests.example_agents import get_clk_driver, get_rst_driver, \
+    get_pull_up_driver, get_sync_sig_monitor, get_pull_up_driver_with_reset, \
+    get_sync_pull_up_driver_with_reset
+from pycocotb.triggers import Timer
 
 
 REF_DATA = [
@@ -145,24 +42,8 @@ class VerilatorCntrTC(unittest.TestCase):
             ("rst", 0, 0, 1),
             ("val", 1, 0, 2),
         ]
-
-        sim_verilog = [join(VERILOG_SRCS, "Cntr.v")]
-        verilatorCompile(sim_verilog, build_dir)
-        module_file_name = generatePythonModuleWrapper(
-            "Cntr", "Cntr",
-            build_dir,
-            accessible_signals)
-
-        cntr_module = loadPythonCExtensionFromFile(module_file_name, "Cntr")
-        cntr_cls = cntr_module.Cntr
-
-        cntrSimInstance = cntr_cls()
-        io = cntrSimInstance.io
-        for sigName, _, _, _ in accessible_signals:
-            sig = getattr(io, sigName)
-            self.assertEqual(sig.name, sigName)
-
-        return cntrSimInstance
+        verilog_files = ["Cntr.v"]
+        return build_sim(verilog_files, accessible_signals, self, build_dir, "Cntr")
 
     def test_dual_build(self):
         """
@@ -308,7 +189,7 @@ class VerilatorCntrTC(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    #suite.addTest(VerilatorCntrTC('test_sim_normal_agents'))
+    # suite.addTest(VerilatorCntrTC('test_sim_cntr_sync_pull_up_reset'))
     suite.addTest(unittest.makeSuite(VerilatorCntrTC))
     runner = unittest.TextTestRunner(verbosity=3)
     runner.run(suite)

@@ -1,13 +1,10 @@
 import unittest
 from tempfile import TemporaryDirectory
-from pycocotb.verilator.simulator_gen import generatePythonModuleWrapper, \
-    loadPythonCExtensionFromFile, verilatorCompile
-from os.path import abspath, dirname, join
+from os.path import join
 from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.constants import CLK_PERIOD
 from pycocotb.triggers import Timer
-
-VERILOG_SRCS = dirname(abspath(__file__))
+from pycocotb.tests.common import build_sim
 
 
 class VerilatorWireTC(unittest.TestCase):
@@ -21,31 +18,10 @@ class VerilatorWireTC(unittest.TestCase):
             ("inp", 0, 0, DW),
             ("outp", 1, 0, DW),
         ]
-
-        sim_verilog = [join(VERILOG_SRCS, top_name + ".v")]
-        verilatorCompile(sim_verilog, build_dir)
-        module_file_name = generatePythonModuleWrapper(
-            top_name, top_name,
-            build_dir,
-            accessible_signals)
-
-        sim_module = loadPythonCExtensionFromFile(module_file_name, top_name)
-        sim_cls = getattr(sim_module, top_name)
-
-        simInstance = sim_cls()
-        io = simInstance.io
-        for sigName, _, _, _ in accessible_signals:
-            sig = getattr(io, sigName)
-            self.assertEqual(sig.name, sigName)
-
-        return simInstance
-
+        files = [top_name + ".v", ]
+        return build_sim(files, accessible_signals, self, build_dir, top_name)
+    
     def _test_sim_wire(self, DW, test_data):
-        """
-        Clock dependency on clk
-            * monitor of val
-        Simulation step restart due write after reset read
-        """
         # build_dir = "tmp"
         # if True:
         with TemporaryDirectory() as build_dir:
@@ -54,6 +30,7 @@ class VerilatorWireTC(unittest.TestCase):
             sim = HdlSimulator(rtl_sim)
 
             readed = []
+
             def data_collect(sim):
                 for d_ref in test_data:
                     yield sim.waitReadOnly()
