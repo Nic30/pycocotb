@@ -1,14 +1,13 @@
 #pragma once
 
-#include <verilated.h>
-#include <verilated_vcd_c.h>
-#include <Python.h>
-#include <structmember.h>
 #include <vector>
 #include <unordered_set>
-//#include <iostream>
-#include <boost/coroutine2/all.hpp>
 #include <functional>
+#include <boost/coroutine2/all.hpp>
+#include <Python.h>
+#include <structmember.h>
+#include <verilated.h>
+#include <verilated_vcd_c.h>
 
 #include "signal_mem_proxy.h"
 
