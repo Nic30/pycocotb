@@ -261,6 +261,9 @@ class HdlSimulator():
 
                 # process is Python generator or Event
                 if isinstance(process, Event):
+                    if process.beforeCb is not None:
+                        process.beforeCb()
+
                     for p in process:
                         self._run_process(p, priority)
 
@@ -276,50 +279,78 @@ class HdlSimulator():
         e = self._writeOnlyEv
         if e is None:
             e = self._writeOnlyEv = Event("WriteOnly")
+            #e.beforeCb = self.onBeforeWriteOnly
             e.afterCb = self.onAfterWriteOnly
             self.schedule(self.now, WriteOnly.PRIORITY, e)
 
         return e
 
+    #def onBeforeWriteOnly(self):
+    #    """
+    #    Update the state of rtl simulator if required
+    #    """
+    #    sim = self.rtl_simulator
+    #    if sim.read_only_not_write_only:
+    #        assert not sim.pending_event_list, sim.pending_event_list
+    #        sim.set_write_only()
+        
     def onAfterWriteOnly(self):
-        self._writeOnlyEv = None
         sim = self.rtl_simulator
         s = sim.eval()
-        assert s == sim.COMB_UPDATE_DONE
+        assert s == sim.COMB_UPDATE_DONE, (self.now, s)
         self.evalRtlEvents(WriteOnly.PRIORITY)
-        # spot ReadOnly event without waiting on it
-        self.waitReadOnly()
+        if self._readOnlyEv is None:
+            self.onAfterReadOnly()
+        self._writeOnlyEv = None
 
     def waitReadOnly(self):
         e = self._readOnlyEv
         if e is None:
-            # ensure there is WriteOnly event prepared
+            # ensure there is WriteOnly event prepared which always has to be before this event
             self.waitWriteOnly()
             e = self._readOnlyEv = Event("ReadOnly")
+            #e.beforeCb = self.onBeforeReadOnly
             e.afterCb = self.onAfterReadOnly
             self.schedule(self.now, ReadOnly.PRIORITY, e)
+            self.waitWriteOnly()
 
         return e
 
+    #def onBeforeReadOnly(self):
+    #    """
+    #    Update the state of rtl simulator if required
+    #    """
+    #    sim = self.rtl_simulator
+    #    while not sim.read_only_not_write_only:
+    #        sim.eval()
+
     def onAfterReadOnly(self):
-        self._readOnlyEv = None
         if self._writeOnlyEv is not None:
             # if write in this time stamp is required we have to reevaluate
             # the combinational logic
             self.rtl_simulator.reset_eval()
         self.waitCombStable()
+        self._readOnlyEv = None
 
     def waitCombStable(self):
         e = self._combStableEv
         if e is None:
             e = self._combStableEv = Event("CombStable")
+            e.beforeCb = self.onBeforeCombStable
             e.afterCb = self.onFinishRtlStep
             self.schedule(self.now, CombStable.PRIORITY, e)
 
         return e
 
+    def onBeforeCombStable(self):
+        """
+        Update the state of rtl simulator if required
+        """
+        sim = self.rtl_simulator
+        while not sim.read_only_not_write_only:
+            sim.eval() 
+
     def onFinishRtlStep(self):
-        self._combStableEv = None
         sim = self.rtl_simulator
         END = sim.END_OF_STEP
         _eval = sim.eval
@@ -331,6 +362,7 @@ class HdlSimulator():
                 break
 
         self.waitAllStable()
+        self._combStableEv = None
 
     def waitAllStable(self):
         e = self._allStableEv
@@ -342,8 +374,8 @@ class HdlSimulator():
         return AllStable
 
     def onAfterStep(self):
-        self._allStableEv = None
         self.rtl_simulator.set_write_only()
+        self._allStableEv = None
 
     def add_process(self, proc) -> None:
         """
