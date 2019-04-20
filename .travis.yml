@@ -17,8 +17,8 @@ python:
 cache:
   - apt: true
   - pip : true
-  directories:
-    - verilator
+  - directories:
+      - verilator
 
 addons:
    apt:
