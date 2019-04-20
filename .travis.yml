@@ -1,7 +1,9 @@
 dist: xenial
 language: python
 sudo: true
+#language: c # or other C/C++ variants
 
+cache: ccache
 git:
   depth: 1
 
