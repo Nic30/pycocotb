@@ -15,6 +15,7 @@ from pycocotb.verilator.fs_utils import find_files, working_directory
 from copy import deepcopy
 from distutils.sysconfig import get_config_var
 from importlib import machinery
+from os.path import dirname
 
 
 COCOPY_SRC_DIR = os.path.join(os.path.dirname(__file__), "c_files")
@@ -64,8 +65,9 @@ DEFAULT_EXTENSION_EXTRA_ARGS = {
 
 
 def verilatorCompile(files: List[str], build_dir: str):
+    include_dirs = [ "-I%s" % dn for dn in set(dirname(f) for f in files) if dn and dn != "." ]
     files = [files[-1], ]
-    cmd = [VERILATOR, "--cc", "--event-triggers", "--trace", "--Mdir", build_dir] + files
+    cmd = [VERILATOR, "--cc", "--event-triggers", "--trace", "--Mdir", build_dir] + files + include_dirs
     try:
         check_call(cmd)
     except Exception:
