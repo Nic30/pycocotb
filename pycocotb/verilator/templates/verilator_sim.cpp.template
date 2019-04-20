@@ -203,8 +203,9 @@ PyMODINIT_FUNC PyInit_{{module_name}}(void) {
     if (PyType_Ready(&SignalMemProxy_pytype) < 0)
         return nullptr;
 
-    if (PyType_Ready(&PySimIo_pytype) < 0)
+    if (PySimIo_pytype_prepare() < 0) {
     	return nullptr;
+    }
     
     if (PyType_Ready(&PySim_pytype) < 0)
         return nullptr;

@@ -3,6 +3,9 @@
 #include "pycocotb_common.h"
 #include "sim_io.h"
 
+/*
+ * Main Python type of the Verilator simulator
+ * */
 template<typename DUT_t>
 struct _PySim_t {
 	PyObject_HEAD
@@ -30,6 +33,7 @@ struct _PySim_t {
 	PyObject * io; // object to store signal proxies under it's names
 };
 
+// The methods witch does not depend on DUT type are precompiled to same compilation time later
 int PySim_eval_event_triggers(_PySim_t<void*>* self);
 PyObject * PySim_reset_eval(_PySim_t<void*>* self, PyObject* args);
 PyObject * PySim_eval(_PySim_t<void*>* self, PyObject* args);

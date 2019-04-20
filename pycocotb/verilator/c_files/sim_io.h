@@ -5,9 +5,12 @@
 
 struct PySimIo_t {
 	PyObject_HEAD
+	PyObject* dict;
 };
 
 extern PyTypeObject PySimIo_pytype;
+
+int PySimIo_pytype_prepare();
 
 int PySim_add_proxy(std::vector<const char *> signal_name, uint8_t * sig_addr, std::vector<size_t> type_width, bool is_signed,
 			const bool * read_only_not_write_only, PyObject * io, std::vector<SignalMemProxy_t*> & signals,

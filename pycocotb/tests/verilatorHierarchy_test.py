@@ -24,15 +24,17 @@ class VerilatorHierarchyTC(unittest.TestCase):
             ("rst_n", 0, 0, 1),
             ("size", 1, 0, 3),
             
-            (("fifo_inst", "clk"), 0, 0, 1),
-            (("fifo_inst", "dataIn_data"), 0, 0, DATA_WIDTH),
-            (("fifo_inst", "dataIn_wait"), 1, 0, 1),
-            (("fifo_inst", "dataIn_en"), 0, 0, 1),
-            (("fifo_inst", "dataOut_data"), 1, 0, DATA_WIDTH),
-            (("fifo_inst", "dataOut_wait"), 0, 0, 1),
-            (("fifo_inst", "dataOut_en"), 1, 0, 1),
-            (("fifo_inst", "rst_n"), 0, 0, 1),
-            (("fifo_inst", "size"), 1, 0, 3),
+            #(("fifo_inst", "clk"), 1, 0, 1),
+            #(("fifo_inst", "dataIn_data"), 1, 0, DATA_WIDTH),
+            #(("fifo_inst", "dataIn_wait"), 1, 0, 1),
+            #(("fifo_inst", "dataIn_en"), 1, 0, 1),
+            #(("fifo_inst", "dataOut_data"), 1, 0, DATA_WIDTH),
+            #(("fifo_inst", "dataOut_wait"), 1, 0, 1),
+            #(("fifo_inst", "dataOut_en"), 1, 0, 1),
+            #(("fifo_inst", "rst_n"), 0, 1, 1),
+            #(("fifo_inst", "size"), 1, 1, 3),
+            (("fifo_inst", "fifo_read"), 1, 0, 1),
+            (("fifo_inst", "fifo_write"), 1, 0, 1),
         ]
         files = ["fifo.v", "HandshakedFifo.v"]
         return build_sim(files, accessible_signals, self, build_dir, "HandshakedFifo")

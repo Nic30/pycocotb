@@ -16,7 +16,7 @@ def format_accessible_signals(accessible_signals, top_name):
         else:
             signal_phy_name = signal_name
 
-        signal_phy_name = "__dot__".join(signal_phy_name)
+        signal_phy_name = "__DOT__".join(signal_phy_name)
 
         read_only = int(read_only)
         is_signed = int(is_signed)
@@ -44,7 +44,9 @@ def build_sim(verilog_files, accessible_signals, tc, build_dir, top_name):
     simInstance = sim_cls()
     io = simInstance.io
     for sigName, sigPhyName, _, _, _ in accessible_signals:
-        sig = getattr(io, sigName)
-        tc.assertEqual(sig.name, sigName)
+        _io = io
+        for n in sigName:
+            _io = getattr(_io, n)
+        tc.assertEqual(_io.name, sigName[-1])
 
     return simInstance

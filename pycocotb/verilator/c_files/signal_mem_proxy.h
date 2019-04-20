@@ -53,6 +53,7 @@ bool SignalMemProxy_value_changed(SignalMemProxy_t* self);
 
 extern PyTypeObject SignalMemProxy_pytype;
 
+// https://gist.github.com/maddouri/0da889b331d910f35e05ba3b7b9d869b
 /// This template is used to optionally call PySim_add_proxy if the signal was not optimised out
 /// by Verilator
 #define define_proxy_constructor(member_name)                                             \
@@ -85,11 +86,6 @@ int construct_proxy_##member_name(std::vector<const char *> signal_name, DUT_t *
 		std::vector<SignalMemProxy_t*> & signals,                                         \
 		std::unordered_set<SignalMemProxy_t*> & event_triggering_signals,                 \
 		std::false_type) {                                                                \
-	std::cout << "[NOTE] optimised out ";                                                 \
-	for (auto n: signal_name) {                                                           \
-		std::cout << n << ".";                                                            \
-	}                                                                                     \
-	std::cout << std::endl;                                                               \
 	return 0;                                                                             \
 }                                                                                         \
                                                                                           \
@@ -99,9 +95,11 @@ int construct_proxy_##member_name(std::vector<const char *> signal_name, DUT_t *
 		const bool * read_only_not_write_only, PyObject * io,                             \
 		std::vector<SignalMemProxy_t*> & signals,                                         \
 		std::unordered_set<SignalMemProxy_t*> & event_triggering_signals) {               \
-	return construct_proxy_##member_name<DUT_t>(signal_name, dut, type_width, is_signed,  \
+	auto constexpr has = dut_has_##member_name<DUT_t>::Has;                               \
+	                                                                                      \
+    return construct_proxy_##member_name<DUT_t>(signal_name, dut, type_width, is_signed,  \
 			read_only_not_write_only, io, signals,                                        \
 			event_triggering_signals,                                                     \
-			std::integral_constant<bool, dut_has_##member_name<DUT_t>::Has>());           \
+			std::integral_constant<bool, has>());                                         \
 }                                                                                         \
 
