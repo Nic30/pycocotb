@@ -2,8 +2,9 @@
 *.so
 *.a
 *.o
+.pyc
 
 # eclipse project
 .project
 .pydevproject
-.pyc
+.settings/
