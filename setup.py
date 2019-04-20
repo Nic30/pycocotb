@@ -1,6 +1,7 @@
-from setuptools.extension import Library
-from setuptools import setup
 import os
+from setuptools import setup
+from setuptools.extension import Library
+
 
 COCOPY_SRC_DIR = os.path.join(
     os.path.dirname(__file__),
