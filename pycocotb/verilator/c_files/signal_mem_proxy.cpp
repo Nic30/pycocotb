@@ -23,7 +23,8 @@ void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
 	if (self->signal_bits > self->signal_bytes * 8)
 		self->signal_bytes += 1;
 	self->last_byte_mask = MASK(signal_bits % 8);
-
+	if (self->last_byte_mask == 0)
+		self->last_byte_mask = 0xff;
 	self->is_signed = is_signed;
 	self->name = PyUnicode_FromString(name);
 	self->signals_checked_for_change = signals_checked_for_change;
