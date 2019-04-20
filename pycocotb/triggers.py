@@ -8,13 +8,14 @@ class Event():
 
     :param process_to_wake: list of sim. processes (generator instances)
         to wake when this event is triggered
-
+    :param beforeCb: callback function which is called before this event is resolved
     :param afterCb: callback function which is called after this event is resolved
     """
-
+    __slots__ = ["debug_name", "process_to_wake", "beforeCb", "afterCb"]
     def __init__(self, debug_name=None):
         self.debug_name = debug_name
         self.process_to_wake = []
+        self.beforeCb = None
         self.afterCb = None
 
     def __iter__(self):
