@@ -1,4 +1,5 @@
 #include "sim_io.h"
+#include <structmember.h>
 
 PyTypeObject PySimIo_pytype;
 int PySimIo_pytype_prepare() {
