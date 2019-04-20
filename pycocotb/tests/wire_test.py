@@ -29,8 +29,7 @@ class VerilatorWireTC(unittest.TestCase):
             build_dir,
             accessible_signals)
 
-        sim_module =
-         loadPythonCExtensionFromFile(module_file_name, top_name)
+        sim_module = loadPythonCExtensionFromFile(module_file_name, top_name)
         sim_cls = getattr(sim_module, top_name)
 
         simInstance = sim_cls()
@@ -70,7 +69,7 @@ class VerilatorWireTC(unittest.TestCase):
                     io.inp.write(d)
                     yield Timer(CLK_PERIOD)
 
-            #rtl_sim.set_trace_file("wire%d.vcd" % DW, -1)
+            rtl_sim.set_trace_file(join(build_dir, "wire%d.vcd" % DW), -1)
             sim.run(CLK_PERIOD * (len(test_data) + 0.5),
                     extraProcesses=[
                         data_collect,
