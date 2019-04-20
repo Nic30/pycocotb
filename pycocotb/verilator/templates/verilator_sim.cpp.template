@@ -382,6 +382,8 @@ static PyMemberDef PySim_members[] = {
 			(char *)"container of signals in simulation"},
 	{(char *)"time", T_ULONGLONG, offsetof(PySim_t, time), 0,
     	(char *)"actual simulation time"},
+    {(char *)"read_only_not_write_only", T_BOOL, offsetof(PySim_t, read_only_not_write_only), 0,
+    	(char *)"if true the IO can be only read if false the IO can be only written"},
 	{(char *)"COMB_UPDATE_DONE", T_INT, offsetof(PySim_t, COMB_UPDATE_DONE), 0,
 			(char *)"all non edge dependent updates done"},
 	{(char *)"BEFORE_EDGE", T_INT, offsetof(PySim_t, BEFORE_EDGE), 0,
