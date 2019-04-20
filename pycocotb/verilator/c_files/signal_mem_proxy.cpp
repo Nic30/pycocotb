@@ -139,10 +139,9 @@ SignalMemProxy_wait(SignalMemProxy_t* self, PyObject* args) {
 	if (!PyArg_ParseTuple(args, "O", &cb)) {
 		return nullptr;
 	}
-	Py_INCREF(cb);
-
 	SignalMemProxy_cache_value(self);
 	PyList_Append(self->callbacks, cb);
+	//Py_DECREF(cb);
 	self->signals_checked_for_change->insert(self);
 
 	Py_RETURN_NONE;
