@@ -1,9 +1,8 @@
 dist: xenial
-#language: python
+language: python
 sudo: true
 language: c # or other C/C++ variants
 
-cache: ccache
 git:
   depth: 1
 
@@ -18,6 +17,8 @@ python:
 cache:
   - apt: true
   - pip : true
+  directories:
+    - verilator
 
 addons:
    apt:
