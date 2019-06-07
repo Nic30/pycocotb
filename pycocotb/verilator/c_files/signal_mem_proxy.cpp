@@ -26,26 +26,26 @@ void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
 	if (self->last_byte_mask == 0)
 		self->last_byte_mask = 0xff;
 	self->is_signed = is_signed;
-	self->name = PyUnicode_FromString(name);
+	// the proxies for the array elements does not have name yet
+	if (name)
+		self->name = PyUnicode_FromString(name);
 	self->signals_checked_for_change = signals_checked_for_change;
 	self->value_cache = new uint8_t[self->signal_bytes];
 	self->read_only_not_write_only = read_only_not_write_only;
 }
 
 static PyMemberDef SignalMemProxy_members[] =
-		{ { (char *) "name", T_OBJECT, offsetof(SignalMemProxy_t, name), 0,
-				(char *) "name of signal in simulation" }, { (char *) "_name",
-				T_OBJECT, offsetof(SignalMemProxy_t, _name), 0,
-				(char *) "logical name of signal in simulation" }, {
-				(char *) "_dtype", T_OBJECT, offsetof(SignalMemProxy_t, _dtype),
-				0, (char *) "type of signal in simulation" },
-				{ (char *) "_origin", T_OBJECT, offsetof(SignalMemProxy_t,
-						_origin), 0,
-						(char *) "original signal object for this signal proxy in simulation" },
-				{ (char *) "_ag", T_OBJECT, offsetof(SignalMemProxy_t, _origin),
-						0,
-						(char *) "simulation agent which drive or monitor this signal" },
-				{ nullptr } /* Sentinel */
+		{ { (char *) "name", T_OBJECT, offsetof(SignalMemProxy_t, name), 0,          //
+			(char *) "name of signal in simulation" },                               //
+		  { (char *) "_name", T_OBJECT, offsetof(SignalMemProxy_t, _name), 0,        //
+			(char *) "logical name of signal in simulation" },                       //
+		  { (char *) "_dtype", T_OBJECT, offsetof(SignalMemProxy_t, _dtype),         //
+			0, (char *) "type of signal in simulation" },                            //
+		  { (char *) "_origin", T_OBJECT, offsetof(SignalMemProxy_t, _origin), 0,    //
+			(char *) "original signal object for this signal proxy in simulation" }, //
+		  { (char *) "_ag", T_OBJECT, offsetof(SignalMemProxy_t, _origin), 0,        //
+		    (char *) "simulation agent which drive or monitor this signal" },        //
+		  { nullptr } /* Sentinel */
 		};
 
 static PyObject *
@@ -56,11 +56,12 @@ SignalMemProxy_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 				"Can not create new instance of SignalMemProxy");
 		return nullptr;
 	}
+	// [TODO] find out if members require initialization or are initialised to None be def
 	self->is_read_only = true;
 	self->signal = nullptr;
 	self->signal_bits = 0;
 	self->is_signed = false;
-	self->name = nullptr;
+	//self->name = nullptr;
 	self->value_cache = nullptr;
 	self->signals_checked_for_change = nullptr;
 	self->read_only_not_write_only = nullptr;
@@ -168,13 +169,14 @@ static void SignalMemProxy_dealloc(SignalMemProxy_t* self) {
 	Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
-static PyMethodDef SignalMemProxy_methods[] = {
-		{ "read", (PyCFunction) SignalMemProxy_read, METH_NOARGS,
-				"read value from signal" }, { "write",
-				(PyCFunction) SignalMemProxy_write, METH_VARARGS,
-				"write value to signal (signal can not be read only)" }, {
-				"wait", (PyCFunction) SignalMemProxy_wait, METH_VARARGS,
-				"wait for change on this signal" }, { nullptr } /* Sentinel */
+static PyMethodDef SignalMemProxy_methods[] = {                          //
+		{ "read", (PyCFunction) SignalMemProxy_read, METH_NOARGS,        //
+				"read value from signal" },                              //
+		{ "write", (PyCFunction) SignalMemProxy_write, METH_VARARGS,     //
+				"write value to signal (signal can not be read only)" }, //
+		{ "wait", (PyCFunction) SignalMemProxy_wait, METH_VARARGS,       //
+				"wait for change on this signal" },                      //
+		{ nullptr } /* Sentinel */
 };
 
 PyTypeObject SignalMemProxy_pytype = {

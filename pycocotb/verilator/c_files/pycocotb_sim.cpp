@@ -33,3 +33,21 @@ PyObject * PySim_set_write_only(_PySim_t<void*> * self, PyObject* args) {
 	self->read_only_not_write_only = false;
 	Py_RETURN_NONE;
 }
+
+PyMemberDef PySim_members[8] = {
+	{(char *)"io", T_OBJECT, offsetof(_PySim_t<void>, io), 0,
+			(char *)"container of signals in simulation"},
+	{(char *)"time", T_ULONGLONG, offsetof(_PySim_t<void>, time), 0,
+    	(char *)"actual simulation time"},
+    {(char *)"read_only_not_write_only", T_BOOL, offsetof(_PySim_t<void>, read_only_not_write_only), 0,
+    	(char *)"if true the IO can be only read if false the IO can be only written"},
+	{(char *)"COMB_UPDATE_DONE", T_INT, offsetof(_PySim_t<void>, COMB_UPDATE_DONE), 0,
+			(char *)"all non edge dependent updates done"},
+	{(char *)"BEFORE_EDGE", T_INT, offsetof(_PySim_t<void>, BEFORE_EDGE), 0,
+			(char *)"before evaluation of edge dependent event"},
+    {(char *)"END_OF_STEP", T_INT, offsetof(_PySim_t<void>, END_OF_STEP), 0,
+    		(char *)"all parts of circuit updated and stable"},
+    {(char *)"pending_event_list", T_OBJECT, offsetof(_PySim_t<void>, pending_event_list), 0,
+    		(char *)"List of triggered callbacks"},
+    {nullptr}
+};

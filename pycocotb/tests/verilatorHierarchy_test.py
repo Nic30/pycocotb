@@ -3,6 +3,7 @@ import unittest
 from tempfile import TemporaryDirectory
 from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.tests.common import build_sim
+from pycocotb.constants import CLK_PERIOD
 
 
 class VerilatorHierarchyTC(unittest.TestCase):
@@ -23,7 +24,7 @@ class VerilatorHierarchyTC(unittest.TestCase):
             ("dataOut_vld", 1, 0, 1),
             ("rst_n", 0, 0, 1),
             ("size", 1, 0, 3),
-            
+
             #(("fifo_inst", "clk"), 1, 0, 1),
             #(("fifo_inst", "dataIn_data"), 1, 0, DATA_WIDTH),
             #(("fifo_inst", "dataIn_wait"), 1, 0, 1),
@@ -33,19 +34,35 @@ class VerilatorHierarchyTC(unittest.TestCase):
             #(("fifo_inst", "dataOut_en"), 1, 0, 1),
             #(("fifo_inst", "rst_n"), 0, 1, 1),
             #(("fifo_inst", "size"), 1, 1, 3),
+            (("fifo_inst", "memory"), 1, 0, [3, DATA_WIDTH]),
             (("fifo_inst", "fifo_read"), 1, 0, 1),
             (("fifo_inst", "fifo_write"), 1, 0, 1),
         ]
         files = ["fifo.v", "HandshakedFifo.v"]
         return build_sim(files, accessible_signals, self, build_dir, "HandshakedFifo")
-    
+
     def test_sim_HandshakedFifo(self):
-        # build_dir = "tmp"
-        # if True:
+        #build_dir = "tmp"
+        #if True:
         with TemporaryDirectory() as build_dir:
             rtl_sim = self.build_sim(build_dir)
             io = rtl_sim.io
             sim = HdlSimulator(rtl_sim)
+
+            def check_if_can_read(sim):
+                yield sim.waitReadOnly()
+                assert(len(io.fifo_inst.memory) == 3)
+                item0 = io.fifo_inst.memory[0]
+                item0.read()
+                for i in io.fifo_inst.memory:
+                    i.read()
+
+            sim.run(CLK_PERIOD * 10.5,
+                    extraProcesses=[
+                        check_if_can_read
+                    ]
+                    )
+
 
 
 if __name__ == "__main__":

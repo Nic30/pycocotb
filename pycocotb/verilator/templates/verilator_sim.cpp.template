@@ -60,7 +60,7 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
         self->COMB_UPDATE_DONE = SIM_EV_COMB_UPDATE_DONE;
         self->BEFORE_EDGE      = SIM_EV_BEFORE_EDGE;
         self->END_OF_STEP      = SIM_EV_END_OF_STEP;
-        self->signals = new std::vector<SignalMemProxy_t*>();
+        self->signals = new std::vector<SignalProxyPtr_t>();
         if (self->signals == nullptr) {
             return nullptr;
         }
@@ -84,6 +84,7 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
         self->actual_sim_step = nullptr;
         self->read_only_not_write_only = false;
 
+		// [TODO] Py_INCREF redundant PyObject_CallObject does not take ownership
         Py_INCREF((PyObject*)&PySimIo_pytype);
         self->io = PyObject_CallObject(reinterpret_cast<PyObject*>(&PySimIo_pytype), nullptr);
         if (!self->io) {
@@ -92,11 +93,15 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
         	return nullptr;
         }
     {% for signal_name, signal_phy_name, read_only, is_signed, type_width in accessible_signals %}
-	    if(construct_proxy_{{signal_phy_name}}<DUT_t>({ {% for sn in signal_name %}"{{sn}}",{% endfor %} },
-	        self->dut, { {% for tw in type_width %}{{tw}}, {% endfor %} },
-	        {{is_signed}}, &self->read_only_not_write_only, self->io, *self->signals,
-	    	*self->event_triggering_signals) < 0) {
-	    		return nullptr;
+        {
+            std::vector<const char*> name = { {% for sn in signal_name %}"{{sn}}",{% endfor %} };
+	        std::vector<size_t> type_width = { {% for tw in type_width %}{{tw}}, {% endfor %} };
+	        if(construct_proxy_{{signal_phy_name}}<DUT_t>(name,
+	            self->dut, type_width,
+	            {{is_signed}}, &self->read_only_not_write_only, self->io, *self->signals,
+	        	*self->event_triggering_signals) < 0) {
+	        		return nullptr;
+	        }
 	    }
     {% endfor %}
 
@@ -127,24 +132,6 @@ static PyMethodDef PySim_methods[] = {
 				"set simulation to write only state, should be called before entering to new evaluation step"},
         {"finalize", (PyCFunction)PySim_finalize<DUT_t>, METH_NOARGS, "flush output and clean all pending actions"},
         {nullptr}  /* Sentinel */
-};
-
-static PyMemberDef PySim_members[] = {
-	{(char *)"io", T_OBJECT, offsetof(PySim_t, io), 0,
-			(char *)"container of signals in simulation"},
-	{(char *)"time", T_ULONGLONG, offsetof(PySim_t, time), 0,
-    	(char *)"actual simulation time"},
-    {(char *)"read_only_not_write_only", T_BOOL, offsetof(PySim_t, read_only_not_write_only), 0,
-    	(char *)"if true the IO can be only read if false the IO can be only written"},
-	{(char *)"COMB_UPDATE_DONE", T_INT, offsetof(PySim_t, COMB_UPDATE_DONE), 0,
-			(char *)"all non edge dependent updates done"},
-	{(char *)"BEFORE_EDGE", T_INT, offsetof(PySim_t, BEFORE_EDGE), 0,
-			(char *)"before evaluation of edge dependent event"},
-    {(char *)"END_OF_STEP", T_INT, offsetof(PySim_t, END_OF_STEP), 0,
-    		(char *)"all parts of circuit updated and stable"},
-    {(char *)"pending_event_list", T_OBJECT, offsetof(PySim_t, pending_event_list), 0,
-    		(char *)"List of triggered callbacks"},
-    {nullptr}
 };
 
 static PyTypeObject PySim_pytype = {
@@ -200,13 +187,9 @@ static PyModuleDef PySim_module = {
 };
 
 PyMODINIT_FUNC PyInit_{{module_name}}(void) {
-    if (PyType_Ready(&SignalMemProxy_pytype) < 0)
-        return nullptr;
-
-    if (PySimIo_pytype_prepare() < 0) {
+    if (PySimIo_pytype_prepare() < 0)
     	return nullptr;
-    }
-    
+
     if (PyType_Ready(&PySim_pytype) < 0)
         return nullptr;
 
@@ -215,10 +198,21 @@ PyMODINIT_FUNC PyInit_{{module_name}}(void) {
         return nullptr;
 
     Py_INCREF(&PySim_pytype);
-    PyModule_AddObject(m, "{{module_name}}", (PyObject *)&PySim_pytype);
+    if (PyModule_AddObject(m, "{{module_name}}", (PyObject *)&PySim_pytype) < 0)
+		return nullptr;
+
+    Py_INCREF(&PySimIo_pytype);
+    if (PyModule_AddObject(m, "PySimIo", (PyObject *)&PySimIo_pytype) < 0)
+		return nullptr;
 
     Py_INCREF(&SignalMemProxy_pytype);
-    PyModule_AddObject(m, "SignalMemProxy", (PyObject *)&SignalMemProxy_pytype);
+    if (PyModule_AddObject(m, "SignalMemProxy", (PyObject *)&SignalMemProxy_pytype) < 0)
+		return nullptr;
+
+    Py_INCREF(&SignalMemProxy_pytype);
+    if (PyModule_AddObject(m, "SignalArrayMemProxy", (PyObject *)&SignalArrayMemProxy_pytype) < 0)
+		return nullptr;
+
     return m;
 }
 

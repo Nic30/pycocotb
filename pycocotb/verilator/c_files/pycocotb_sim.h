@@ -14,7 +14,7 @@ struct _PySim_t {
 	// coroutine of simulation step
 	sim_step_t::pull_type * actual_sim_step;
 	// python IO for signals
-	std::vector<SignalMemProxy_t*> * signals;
+	std::vector<SignalProxyPtr_t> * signals;
 	// set of singals which have sim. process which waits on event on this signal
 	std::unordered_set<SignalMemProxy_t*> * event_triggering_signals;
 	bool read_only_not_write_only;
@@ -38,6 +38,8 @@ int PySim_eval_event_triggers(_PySim_t<void*>* self);
 PyObject * PySim_reset_eval(_PySim_t<void*>* self, PyObject* args);
 PyObject * PySim_eval(_PySim_t<void*>* self, PyObject* args);
 PyObject * PySim_set_write_only(_PySim_t<void*> * self, PyObject* args);
+
+extern PyMemberDef PySim_members[8];
 
 
 template<typename DUT_t>
@@ -72,8 +74,12 @@ PyObject * PySim_set_trace_file(_PySim_t<DUT_t> * self, PyObject* args) {
 
 template<typename DUT_t>
 PyObject * PySim_finalize(_PySim_t<DUT_t>* self, PyObject* args) {
-	for (auto s : *self->signals) {
-		auto cbs = s->callbacks;
+	// Cancel all pending python callbacks to prevent mem leaks
+	for (auto & s : *self->signals) {
+		auto scl = s.scalar;
+		if (!scl)
+			continue;
+		auto cbs = scl->callbacks;
 		auto len = PySequence_Length(cbs);
 		if (len > 0) {
 			if (PySequence_DelSlice(cbs, 0, len) < 0) {
@@ -103,9 +109,8 @@ void PySim_dealloc(_PySim_t<DUT_t>* self) {
 
 	delete self->event_triggering_signals;
 
-	for (auto s : *self->signals) {
-		s->signal = nullptr;
-		Py_DECREF(s);
+	for (auto & s : *self->signals) {
+		s.destroy();
 	}
 	delete self->signals;
 

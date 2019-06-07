@@ -6,9 +6,12 @@ from setuptools.extension import Library
 COCOPY_SRC_DIR = os.path.join(
     os.path.dirname(__file__),
     "pycocotb", "verilator", "c_files")
-COCOPY_SRCS = [os.path.join(COCOPY_SRC_DIR, "signal_mem_proxy.cpp"),
-               os.path.join(COCOPY_SRC_DIR, "sim_io.cpp"),
-               os.path.join(COCOPY_SRC_DIR, "pycocotb_sim.cpp") ]
+COCOPY_SRCS = [os.path.join(COCOPY_SRC_DIR, p)
+               for p in [
+                         "signal_mem_proxy.cpp",
+                         "signal_array_mem_proxy.cpp",
+                         "sim_io.cpp",
+                         "pycocotb_sim.cpp"] ]
 VERILATOR_ROOT = "/usr/local/share/verilator"
 VERILATOR_INCLUDE_DIR = os.path.join(VERILATOR_ROOT, "include")
 VERILATOR_SOURCES = [

@@ -33,7 +33,7 @@ struct SignalMemProxy_t {
 };
 
 /*
- * Initialize SignalMemProxy_t
+ * Initialise SignalMemProxy_t
  * */
 void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
 		uint8_t * signal, size_t signal_bits, bool is_signed, const char * name,
@@ -52,54 +52,4 @@ void SignalMemProxy_cache_value(SignalMemProxy_t* self);
 bool SignalMemProxy_value_changed(SignalMemProxy_t* self);
 
 extern PyTypeObject SignalMemProxy_pytype;
-
-// https://gist.github.com/maddouri/0da889b331d910f35e05ba3b7b9d869b
-/// This template is used to optionally call PySim_add_proxy if the signal was not optimised out
-/// by Verilator
-#define define_proxy_constructor(member_name)                                             \
-template <typename T>                                                                     \
-struct dut_has_##member_name {                                                            \
-    typedef char yes_type;                                                                \
-    typedef long no_type;                                                                 \
-    template <typename U> static yes_type test(decltype(&U::member_name));                \
-    template <typename U> static no_type test(...);                                       \
-    static constexpr bool Has = sizeof(test<T>(0)) == sizeof(yes_type);                   \
-};                                                                                        \
-                                                                                          \
-template<typename DUT_t>                                                                  \
-int construct_proxy_##member_name(std::vector<const char *> signal_name, DUT_t * dut,     \
-		std::vector<size_t> type_width, bool is_signed,                                   \
-		const bool * read_only_not_write_only, PyObject * io,                             \
-		std::vector<SignalMemProxy_t*> & signals,                                         \
-		std::unordered_set<SignalMemProxy_t*> & event_triggering_signals,                 \
-		std::true_type) {                                                                 \
-	uint8_t * sig_addr = reinterpret_cast<uint8_t*>(&dut->member_name);                   \
-	return PySim_add_proxy(signal_name, sig_addr, type_width, is_signed,                  \
-			read_only_not_write_only, io, signals,                                        \
-			event_triggering_signals);                                                    \
-}                                                                                         \
-                                                                                          \
-template<typename DUT_t>                                                                  \
-int construct_proxy_##member_name(std::vector<const char *> signal_name, DUT_t * dut,     \
-		std::vector<size_t> type_width, bool is_signed,                                   \
-		const bool * read_only_not_write_only, PyObject * io,                             \
-		std::vector<SignalMemProxy_t*> & signals,                                         \
-		std::unordered_set<SignalMemProxy_t*> & event_triggering_signals,                 \
-		std::false_type) {                                                                \
-	return 0;                                                                             \
-}                                                                                         \
-                                                                                          \
-template<typename DUT_t>                                                                  \
-int construct_proxy_##member_name(std::vector<const char *> signal_name, DUT_t * dut,     \
-		std::vector<size_t> type_width, bool is_signed,                                   \
-		const bool * read_only_not_write_only, PyObject * io,                             \
-		std::vector<SignalMemProxy_t*> & signals,                                         \
-		std::unordered_set<SignalMemProxy_t*> & event_triggering_signals) {               \
-	auto constexpr has = dut_has_##member_name<DUT_t>::Has;                               \
-	                                                                                      \
-    return construct_proxy_##member_name<DUT_t>(signal_name, dut, type_width, is_signed,  \
-			read_only_not_write_only, io, signals,                                        \
-			event_triggering_signals,                                                     \
-			std::integral_constant<bool, has>());                                         \
-}                                                                                         \
 
