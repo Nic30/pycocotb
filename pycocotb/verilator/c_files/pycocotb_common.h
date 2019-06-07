@@ -3,12 +3,15 @@
 #include <vector>
 #include <unordered_set>
 #include <functional>
+#include <iostream>
+
 #include <boost/coroutine2/all.hpp>
+
 #include <Python.h>
 #include <structmember.h>
+
 #include <verilated.h>
 #include <verilated_vcd_c.h>
-#include <iostream>
 
 enum SimEventType {
 	SIM_EV_COMB_UPDATE_DONE, // all non edge dependent updates done
@@ -19,4 +22,3 @@ enum SimEventType {
 
 // Coroutine which generates pairs <isEndOfSim, clockSignal*>
 using sim_step_t = boost::coroutines2::coroutine<std::pair<SimEventType, CData*>>;
-

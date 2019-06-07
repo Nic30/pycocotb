@@ -17,8 +17,8 @@ from distutils.sysconfig import get_config_var
 from importlib import machinery
 from os.path import dirname
 
-
-COCOPY_SRC_DIR = os.path.join(os.path.dirname(__file__), "c_files")
+VER_SIM_GEN_BASE = os.path.dirname(__file__)
+COCOPY_SRC_DIR = os.path.join(VER_SIM_GEN_BASE, "c_files")
 VERILATOR_ROOT = "/usr/local/share/verilator"
 VERILATOR_INCLUDE_DIR = os.path.join(VERILATOR_ROOT, "include")
 VERILATOR = "verilator_bin_dbg"
@@ -40,14 +40,14 @@ VERSION = get_config_var("VERSION")
 
 IN_PLACE_LIB_DIR = os.path.abspath(
     os.path.join(
-        os.path.dirname(__file__),
+        VER_SIM_GEN_BASE,
         "..",
         "..",
         "build",
         "lib.%s-%s-%s" % (MACHDEP, AR, VERSION),
         "pycocotb",
         "verilator"))
-INSTALLED_LIB_DIR = os.path.join(os.path.dirname(__file__))
+INSTALLED_LIB_DIR = os.path.join(VER_SIM_GEN_BASE)
 
 
 DEFAULT_EXTENSION_EXTRA_ARGS = {
@@ -59,15 +59,19 @@ DEFAULT_EXTENSION_EXTRA_ARGS = {
     "library_dirs": [IN_PLACE_LIB_DIR, INSTALLED_LIB_DIR],
     "extra_compile_args": [
         "-std=c++11",
-        #"-faligned-new"
+        # "-faligned-new"
     ],
 }
 
 
 def verilatorCompile(files: List[str], build_dir: str):
-    include_dirs = [ "-I%s" % dn for dn in set(dirname(f) for f in files) if dn and dn != "." ]
+    include_dirs = [ "-I%s" % dn
+                    for dn in set(dirname(f)
+                        for f in files)
+                    if dn and dn != "." ]
     files = [files[-1], ]
-    cmd = [VERILATOR, "--cc", "--event-triggers", "--trace", "--Mdir", build_dir] + files + include_dirs
+    cmd = [VERILATOR, "--cc", "--event-triggers",
+           "--trace", "--Mdir", build_dir] + files + include_dirs
     try:
         check_call(cmd)
     except Exception:
@@ -92,7 +96,7 @@ def generatePythonModuleWrapper(
     :param top_unique_name: unique name used as name for simulator module
     :param build_dir: tmp directory where simulation should be build
     :param verilator_include_dir: include directory of Verilator
-    :param accessible_signals: List of tuples (signal_name, read_only, is_signed, type_width)
+    :param accessible_signals: List of tuples (signal_name, signal_phy_name, read_only, is_signed, type_width)
     :param extra_Extension_args: additional values for setuptools.Extension constructor
 
     :return: file name of builded module (.so/.dll file)
