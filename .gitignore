@@ -10,3 +10,5 @@ build/
 .project
 .pydevproject
 .settings/
+/Debug/
+.cproject
