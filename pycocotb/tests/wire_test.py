@@ -20,7 +20,7 @@ class VerilatorWireTC(unittest.TestCase):
         ]
         files = [top_name + ".v", ]
         return build_sim(files, accessible_signals, self, build_dir, top_name)
-    
+
     def _test_sim_wire(self, DW, test_data):
         # build_dir = "tmp"
         # if True:
