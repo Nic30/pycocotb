@@ -43,7 +43,8 @@ before_install:
 
 install:
   # install verilator or use cache if already exists
-  - if [ ! -d "verilator" ] ; then
+  - |
+    if [ ! -d "verilator" ] ; then
        git clone http://git.veripool.org/git/verilator ;
        cd verilator;
        git checkout 47107a5a36e9562144ec13d4f7821942cf767b21 ;
