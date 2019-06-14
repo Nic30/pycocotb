@@ -151,7 +151,6 @@ PyObject * SignalArrayMemProxy_sq_item(SignalArrayMemProxy_t * self,
 				"SignalArrayMemProxy constructed for scalar type");
 		return nullptr;
 	}
-
 }
 
 PyObject* SignalArrayMemProxy_iter(SignalArrayMemProxy_t *self) {
