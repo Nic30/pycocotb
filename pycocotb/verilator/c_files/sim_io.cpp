@@ -2,6 +2,13 @@
 #include <structmember.h>
 
 PyTypeObject PySimIo_pytype;
+
+PyMemberDef PySimIo_members[2] = {
+	{(char *)"__dict__", T_OBJECT, offsetof(PySimIo_t, dict), 0,
+			(char *)"dictionary with properties of the object"},
+    {nullptr}
+};
+
 int PySimIo_pytype_prepare() {
 	if (PyType_Ready(&SignalMemProxy_pytype) < 0) {
 		return -1;
@@ -22,6 +29,7 @@ int PySimIo_pytype_prepare() {
 	t.tp_getattro = PyObject_GenericGetAttr;
 	t.tp_setattro = PyObject_GenericSetAttr;
 	t.tp_dictoffset = offsetof(PySimIo_t, dict);
+	t.tp_members = PySimIo_members;
 
 	if (PyType_Ready(&PySimIo_pytype) < 0)
 		return -1;
