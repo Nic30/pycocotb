@@ -58,7 +58,9 @@ install:
        ./configure ;
        CPPFLAGS=-std=c++11 make ;
     else
+       ehco "using verilator from the cache";
        cd verilator ;
+       ls . ;
     fi
   - sudo make install
   - cd ..
