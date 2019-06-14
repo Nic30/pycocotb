@@ -1,7 +1,6 @@
 # PyCOCOTB
 
 [![Build Status](https://travis-ci.org/Nic30/pycocotb.svg?branch=master)](https://travis-ci.org/Nic30/pycocotb)
-[![Build status](https://ci.appveyor.com/api/projects/status/oy1ciuqhuax6vt4u?svg=true)](https://ci.appveyor.com/project/nic30/pycocotb)
 [![Coverage Status](https://coveralls.io/repos/github/Nic30/pycocotb/badge.svg?branch=master)](https://coveralls.io/github/Nic30/pycocotb?branch=master)
 [ROADMAP](https://drive.google.com/file/d/1zyegLIf7VaBRyb-ED5vgOMmHzW4SRZLp/view?usp=sharing)
 
