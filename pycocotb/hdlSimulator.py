@@ -285,15 +285,16 @@ class HdlSimulator():
 
         return e
 
-    #def onBeforeWriteOnly(self):
-    #    """
-    #    Update the state of rtl simulator if required
-    #    """
-    #    sim = self.rtl_simulator
-    #    if sim.read_only_not_write_only:
-    #        assert not sim.pending_event_list, sim.pending_event_list
-    #        sim.set_write_only()
-        
+    # def onBeforeWriteOnly(self):
+    #     """
+    #     Update the state of rtl simulator if required
+    #     """
+    #     sim = self.rtl_simulator
+    #     if sim.read_only_not_write_only:
+    #         assert not sim.pending_event_list, sim.pending_event_list
+    #         #sim.reset_eval()
+    #         sim.set_write_only()
+
     def onAfterWriteOnly(self):
         sim = self.rtl_simulator
         s = sim.eval()
@@ -348,7 +349,7 @@ class HdlSimulator():
         """
         sim = self.rtl_simulator
         while not sim.read_only_not_write_only:
-            sim.eval() 
+            sim.eval()
 
     def onFinishRtlStep(self):
         sim = self.rtl_simulator

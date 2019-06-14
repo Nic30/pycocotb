@@ -11,18 +11,18 @@ public:
     bool __comb_update_triggered;
 
     {{top_name}}_wrap(): V{{top_name}}("{{top_name}}"), __pause_sink(nullptr),
-    		__comb_update_triggered(false) {
+            __comb_update_triggered(false) {
     }
     {{top_name}}_wrap(const {{top_name}}_wrap &) = delete;
     void eval() {
-    	V{{top_name}}__Syms* __restrict vlSymsp = this->__VlSymsp;
-    	__comb_update_triggered = false;
-    	// [TODO]
-    	_eval_settle(vlSymsp);
-    	V{{top_name}}::eval();
+        V{{top_name}}__Syms* __restrict vlSymsp = this->__VlSymsp;
+        __comb_update_triggered = false;
+        // [TODO]
+        _eval_settle(vlSymsp);
+        V{{top_name}}::eval();
         if (!__comb_update_triggered) {
-        	__comb_update_triggered = true;
-        	(*__pause_sink)({SIM_EV_COMB_UPDATE_DONE, nullptr});
+            __comb_update_triggered = true;
+            (*__pause_sink)({SIM_EV_COMB_UPDATE_DONE, nullptr});
         }
         (*__pause_sink)({SIM_EV_END_OF_STEP, nullptr});
     }
@@ -30,8 +30,8 @@ public:
     virtual void onBeforeEdge(V{{top_name}}__Syms* __restrict vlSymsp, CData &clkSig) override {
         VL_DEBUG_IF(VL_DBG_MSGF("+    Decorated{{top_name}}::onBeforeEdge\n"); );
         if (!__comb_update_triggered) {
-        	__comb_update_triggered = true;
-        	(*__pause_sink)({SIM_EV_COMB_UPDATE_DONE, nullptr});
+            __comb_update_triggered = true;
+            (*__pause_sink)({SIM_EV_COMB_UPDATE_DONE, nullptr});
         }
 
         (*__pause_sink)({SIM_EV_BEFORE_EDGE, &clkSig});
@@ -51,9 +51,9 @@ define_proxy_constructor({{signal_phy_name}});{% endfor %}
 
 static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     static char *kwlist[] = {nullptr};
-	if(!PyArg_ParseTupleAndKeywords(args, kwds, "", kwlist)) {
-		return nullptr;
-	}
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "", kwlist)) {
+        return nullptr;
+    }
 
     PySim_t *self = (PySim_t *)type->tp_alloc(type, 0);
     if (self != nullptr) {
@@ -84,25 +84,25 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
         self->actual_sim_step = nullptr;
         self->read_only_not_write_only = false;
 
-		// [TODO] Py_INCREF redundant PyObject_CallObject does not take ownership
+        // [TODO] Py_INCREF redundant PyObject_CallObject does not take ownership
         Py_INCREF((PyObject*)&PySimIo_pytype);
         self->io = PyObject_CallObject(reinterpret_cast<PyObject*>(&PySimIo_pytype), nullptr);
         if (!self->io) {
-        	PyErr_SetString(PyExc_AssertionError,
-        	        	    "Can not create simulation io");
-        	return nullptr;
+            PyErr_SetString(PyExc_AssertionError,
+                            "Can not create simulation io");
+            return nullptr;
         }
     {% for signal_name, signal_phy_name, read_only, is_signed, type_width in accessible_signals %}
         {
             std::vector<const char*> name = { {% for sn in signal_name %}"{{sn}}",{% endfor %} };
-	        std::vector<size_t> type_width = { {% for tw in type_width %}{{tw}}, {% endfor %} };
-	        if(construct_proxy_{{signal_phy_name}}<DUT_t>(name,
-	            self->dut, type_width,
-	            {{is_signed}}, &self->read_only_not_write_only, self->io, *self->signals,
-	        	*self->event_triggering_signals) < 0) {
-	        		return nullptr;
-	        }
-	    }
+            std::vector<size_t> type_width = { {% for tw in type_width %}{{tw}}, {% endfor %} };
+            if(construct_proxy_{{signal_phy_name}}<DUT_t>(name,
+                self->dut, type_width,
+                {{is_signed}}, &self->read_only_not_write_only, self->io, *self->signals,
+                *self->event_triggering_signals) < 0) {
+                    return nullptr;
+            }
+        }
     {% endfor %}
 
         self->time = 0;
@@ -121,15 +121,15 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
 
 static PyMethodDef PySim_methods[] = {
         {"eval", (PyCFunction)PySim_eval<DUT_t>, METH_NOARGS, "single simulation step"},
-		{"reset_eval", (PyCFunction)PySim_reset_eval, METH_NOARGS, "reset evaluation"},
+        {"reset_eval", (PyCFunction)PySim_reset_eval, METH_NOARGS, "reset evaluation"},
         {"set_trace_file", (PyCFunction)PySim_set_trace_file<DUT_t>, METH_VARARGS,
                 "set file where data from signals should be stored\n"
                 "\n"
                 ":param file_name: name of file where trace should be stored (path of vcd file f.e.)\n"
                 ":param trace_depth: number of hyerarchy levels which should be trraced (-1 = all)\n"
         },
-		{"set_write_only", (PyCFunction)PySim_set_write_only, METH_NOARGS,
-				"set simulation to write only state, should be called before entering to new evaluation step"},
+        {"set_write_only", (PyCFunction)PySim_set_write_only, METH_NOARGS,
+                "set simulation to write only state, should be called before entering to new evaluation step"},
         {"finalize", (PyCFunction)PySim_finalize<DUT_t>, METH_NOARGS, "flush output and clean all pending actions"},
         {nullptr}  /* Sentinel */
 };
@@ -188,7 +188,7 @@ static PyModuleDef PySim_module = {
 
 PyMODINIT_FUNC PyInit_{{module_name}}(void) {
     if (PySimIo_pytype_prepare() < 0)
-    	return nullptr;
+        return nullptr;
 
     if (PyType_Ready(&PySim_pytype) < 0)
         return nullptr;
@@ -199,19 +199,19 @@ PyMODINIT_FUNC PyInit_{{module_name}}(void) {
 
     Py_INCREF(&PySim_pytype);
     if (PyModule_AddObject(m, "{{module_name}}", (PyObject *)&PySim_pytype) < 0)
-		return nullptr;
+        return nullptr;
 
     Py_INCREF(&PySimIo_pytype);
     if (PyModule_AddObject(m, "PySimIo", (PyObject *)&PySimIo_pytype) < 0)
-		return nullptr;
+        return nullptr;
 
     Py_INCREF(&SignalMemProxy_pytype);
     if (PyModule_AddObject(m, "SignalMemProxy", (PyObject *)&SignalMemProxy_pytype) < 0)
-		return nullptr;
+        return nullptr;
 
     Py_INCREF(&SignalMemProxy_pytype);
     if (PyModule_AddObject(m, "SignalArrayMemProxy", (PyObject *)&SignalArrayMemProxy_pytype) < 0)
-		return nullptr;
+        return nullptr;
 
     return m;
 }
