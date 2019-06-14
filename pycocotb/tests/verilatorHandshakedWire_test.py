@@ -74,7 +74,7 @@ class VerilatorHandshakedWireTC(unittest.TestCase):
             din_ag, dout_ag = generate_handshaked_agents(io, io.clk, io.rst_n)
 
             sim = HdlSimulator(rtl_sim)
-            rtl_sim.set_trace_file("handshaked_fifo.vcd", -1)
+            # rtl_sim.set_trace_file("handshaked_fifo.vcd", -1)
             extra_procs = initFn(sim, din_ag, dout_ag)
             if extra_procs is None:
                 extra_procs = []
