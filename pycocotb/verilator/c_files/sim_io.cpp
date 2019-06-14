@@ -48,7 +48,6 @@ int PySim_add_proxy(std::vector<const char *> signal_name, uint8_t * sig_addr,
 		if (PyObject_HasAttrString(io, n)) {
 			io = PyObject_GetAttrString(io, n);
 		} else {
-			Py_INCREF((PyObject* ) &PySimIo_pytype);
 			auto new_io = PyObject_CallObject(
 					reinterpret_cast<PyObject*>(&PySimIo_pytype), nullptr);
 			if (!new_io) {
@@ -80,7 +79,6 @@ int PySim_add_scalar_proxy(const char * signal_name, uint8_t * sig_addr,
 		const bool * read_only_not_write_only, PyObject * io,
 		std::vector<SignalProxyPtr_t> & signals,
 		std::unordered_set<SignalMemProxy_t*> & event_triggering_signals) {
-	Py_INCREF((PyObject* ) &SignalMemProxy_pytype);
 	SignalMemProxy_t * proxy = (SignalMemProxy_t *) PyObject_CallObject(
 			(PyObject*) &SignalMemProxy_pytype, nullptr);
 	if (!proxy) {
@@ -102,7 +100,6 @@ int PySim_add_arr_proxy(const char * signal_name, uint8_t * sig_addr,
 		std::vector<size_t> type_width, bool is_signed,
 		const bool * read_only_not_write_only, PyObject * io,
 		std::vector<SignalProxyPtr_t> & signals) {
-	Py_INCREF((PyObject* ) &SignalArrayMemProxy_pytype);
 	SignalArrayMemProxy_t * proxy =
 			(SignalArrayMemProxy_t *) PyObject_CallObject(
 					(PyObject*) &SignalArrayMemProxy_pytype, nullptr);

@@ -120,7 +120,6 @@ PyObject * SignalArrayMemProxy_sq_item(SignalArrayMemProxy_t * self,
 	size_t dims = self->dim->size();
 	if (dims == 2) {
 		// item is scalar
-		Py_INCREF((PyObject* ) &SignalMemProxy_pytype);
 		SignalMemProxy_t * proxy = (SignalMemProxy_t *) PyObject_CallObject(
 				(PyObject*) &SignalMemProxy_pytype, nullptr);
 		if (!proxy) {
@@ -136,7 +135,6 @@ PyObject * SignalArrayMemProxy_sq_item(SignalArrayMemProxy_t * self,
 		std::vector<size_t> type_width(dims - 1);
 		std::copy(self->dim->begin() + 1, self->dim->end(), type_width.begin());
 		// item is a array
-		Py_INCREF((PyObject* ) &SignalArrayMemProxy_pytype);
 		SignalArrayMemProxy_t * proxy =
 				(SignalArrayMemProxy_t *) PyObject_CallObject(
 						(PyObject*) &SignalArrayMemProxy_pytype, nullptr);
@@ -157,7 +155,6 @@ PyObject * SignalArrayMemProxy_sq_item(SignalArrayMemProxy_t * self,
 }
 
 PyObject* SignalArrayMemProxy_iter(SignalArrayMemProxy_t *self) {
-	Py_INCREF((PyObject* ) &SignalArrayMemProxyIterator_pytype);
 	SignalArrayMemProxyIterator_t * it =
 			(SignalArrayMemProxyIterator_t *) PyObject_CallObject(
 					(PyObject*) &SignalArrayMemProxyIterator_pytype, nullptr);

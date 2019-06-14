@@ -78,14 +78,12 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
 
         self->dut = new DUT_t();
         if(!self->dut) {
-            PyErr_SetString(PyExc_AssertionError, "Can not create new instance of simulation");
+            PyErr_SetString(PyExc_AssertionError, "Can not create new instance of Verilator simulation");
             return nullptr;
         }
         self->actual_sim_step = nullptr;
         self->read_only_not_write_only = false;
 
-        // [TODO] Py_INCREF redundant PyObject_CallObject does not take ownership
-        Py_INCREF((PyObject*)&PySimIo_pytype);
         self->io = PyObject_CallObject(reinterpret_cast<PyObject*>(&PySimIo_pytype), nullptr);
         if (!self->io) {
             PyErr_SetString(PyExc_AssertionError,
