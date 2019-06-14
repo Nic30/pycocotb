@@ -6,6 +6,7 @@ from unittest import TestLoader, TextTestRunner, TestSuite
 from pycocotb.tests.verilatorCntr_test import VerilatorCntrTC
 from pycocotb.tests.verilatorHierarchy_test import VerilatorHierarchyTC
 from pycocotb.tests.wire_test import VerilatorWireTC
+from pycocotb.tests.verilatorHandshakedWire_test import VerilatorHandshakedWireTC
 
 
 def testSuiteFromTCs(*tcs):
@@ -20,6 +21,7 @@ suite = testSuiteFromTCs(
     VerilatorCntrTC,
     VerilatorWireTC,
     VerilatorHierarchyTC,
+    VerilatorHandshakedWireTC,
 )
 
 if __name__ == '__main__':

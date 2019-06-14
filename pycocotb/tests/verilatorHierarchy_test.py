@@ -8,10 +8,10 @@ from pycocotb.constants import CLK_PERIOD
 
 class VerilatorHierarchyTC(unittest.TestCase):
     """
-    Simple test of verilator simulation wrapper hiearchical access
+    Simple test of verilator simulation wrapper access on multiple hierarchy levels
     """
 
-    def build_sim(self, build_dir):
+    def build_handshaked_fifo(self, build_dir):
         DATA_WIDTH = 64
         accessible_signals = [
             # (signal_name, read_only, is_signed, type_width)
@@ -45,7 +45,7 @@ class VerilatorHierarchyTC(unittest.TestCase):
         #build_dir = "tmp"
         #if True:
         with TemporaryDirectory() as build_dir:
-            rtl_sim = self.build_sim(build_dir)
+            rtl_sim = self.build_handshaked_fifo(build_dir)
             io = rtl_sim.io
             sim = HdlSimulator(rtl_sim)
 
