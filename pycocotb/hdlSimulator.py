@@ -118,7 +118,7 @@ class HdlSimulator():
             elif isgenerator(ev):
                 # else this process spotted new process
                 # and it has to be put in queue
-                self.schedule_actual(ev)
+                self._schedule_proc_now(ev)
             else:
                 raise ValueError(ev)
 
@@ -198,7 +198,12 @@ class HdlSimulator():
                     _run_event_list(time_slot.write_only)
                     time_slot.write_only = None
                     s = rtl_sim.eval()
+
                     assert s == rtl_sim.COMB_UPDATE_DONE, (self.now, s)
+                    if time_slot.comb_read is None:
+                        self._current_event_list = time_slot.comb_read = []
+                    else:
+                        self._current_event_list = time_slot.comb_read
                     self._eval_rtl_events()
 
                     _run_event_list(time_slot.comb_read)
@@ -216,6 +221,10 @@ class HdlSimulator():
                 while not rtl_sim.read_only_not_write_only:
                     rtl_sim.eval()
                     if rtl_sim.pending_event_list:
+                        if time_slot.comb_read is None:
+                            self._current_event_list = time_slot.comb_stable = []
+                        else:
+                            self._current_event_list = time_slot.comb_stable
                         self._eval_rtl_events()
 
                 _run_event_list(time_slot.comb_stable)
@@ -227,6 +236,10 @@ class HdlSimulator():
                 while True:
                     ret = rtl_sim.eval()
                     if rtl_sim.pending_event_list:
+                        if time_slot.comb_read is None:
+                            self._current_event_list = time_slot.all_stable = []
+                        else:
+                            self._current_event_list = time_slot.all_stable
                         self._eval_rtl_events()
                     if ret == END:
                         break
