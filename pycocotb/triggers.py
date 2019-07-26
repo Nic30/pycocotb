@@ -55,12 +55,31 @@ class Action():
 
 # [TODO] RisingEdge/FallingEdge with support in c++ code
 class Edge(Action):
+    """
+    :note: if multiple signals specified the process will be triggered on first
+        edge on any signal, once at most
+    """
 
-    def __init__(self, signal: "RtlSignal"):
-        self.signal = signal
+    def __init__(self, *signals: "RtlSignal"):
+        self.signals = signals
 
     def applyProcess(self, sim, process):
-        self.signal.wait(process)
+        if len(self.signals) > 1:
+
+            def wrap(sim):
+                """
+                Because we need to wake process only once
+                and after ignore wake potentially caused by edges on other signals
+                """
+                yield process
+
+            p = wrap(sim)
+        else:
+            p = process
+
+        for s in self.signals:
+            s.wait(p)
+
         return False
 
 
