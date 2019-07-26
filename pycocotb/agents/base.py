@@ -36,14 +36,14 @@ class AgentBase():
         Called before simulation to collect all drivers of interfaces
         from this agent
         """
-        return [self.driver]
+        return [self.driver, ]
 
     def getMonitors(self):
         """
         Called before simulation to collect all monitors of interfaces
         from this agent
         """
-        return [self.monitor]
+        return [self.monitor, ]
 
     def driver(self, sim):
         """

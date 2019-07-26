@@ -10,7 +10,7 @@ from pycocotb.tests.common import build_sim
 from pycocotb.tests.example_agents import get_clk_driver, get_rst_driver, \
     get_pull_up_driver, get_sync_sig_monitor, get_pull_up_driver_with_reset, \
     get_sync_pull_up_driver_with_reset
-from pycocotb.triggers import Timer
+from pycocotb.triggers import Timer, WaitCombStable
 
 
 REF_DATA = [
@@ -72,7 +72,7 @@ class VerilatorCntrTC(unittest.TestCase):
                 val = io.val
                 while True:
                     yield Timer(CLK_PERIOD)
-                    yield sim.waitReadOnly()
+                    yield WaitCombStable()
                     data.append((sim.now, int(val.read())))
 
             sim = HdlSimulator(rtl_sim)

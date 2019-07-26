@@ -3,7 +3,7 @@ from tempfile import TemporaryDirectory
 from os.path import join
 from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.constants import CLK_PERIOD
-from pycocotb.triggers import Timer
+from pycocotb.triggers import Timer, WaitCombRead, WaitWriteOnly
 from pycocotb.tests.common import build_sim
 
 
@@ -33,7 +33,7 @@ class VerilatorWireTC(unittest.TestCase):
 
             def data_collect(sim):
                 for d_ref in test_data:
-                    yield sim.waitReadOnly()
+                    yield WaitCombRead()
                     d = io.outp.read()
                     d = int(d)
                     readed.append(d)
@@ -42,7 +42,7 @@ class VerilatorWireTC(unittest.TestCase):
 
             def data_feed(sim):
                 for d in test_data:
-                    yield sim.waitWriteOnly()
+                    yield WaitWriteOnly()
                     io.inp.write(d)
                     yield Timer(CLK_PERIOD)
 

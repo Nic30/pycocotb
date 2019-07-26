@@ -78,15 +78,15 @@ class VerilatorHandshakedWireTC(unittest.TestCase):
             extra_procs = initFn(sim, din_ag, dout_ag)
             if extra_procs is None:
                 extra_procs = []
-            sim.run(CLK_PERIOD * 20.5,
-                    extraProcesses=[
-                        *ClockAgent(io.clk, CLK_PERIOD).getDrivers(),
-                        *PullUpAgent(io.rst_n, CLK_PERIOD).getDrivers(),
-                        *din_ag.getDrivers(),
-                        *dout_ag.getMonitors(),
-                        *extra_procs,
-                        ]
-                    )
+
+            proc = [
+                *ClockAgent(io.clk, CLK_PERIOD).getDrivers(),
+                *PullUpAgent(io.rst_n, CLK_PERIOD).getDrivers(),
+                *din_ag.getDrivers(),
+                *dout_ag.getMonitors(),
+                *extra_procs,
+            ]
+            sim.run(CLK_PERIOD * 20.5, extraProcesses=proc)
             checkFn(sim, din_ag, dout_ag)
 
     def test_nop(self):
@@ -132,9 +132,10 @@ class VerilatorHandshakedWireTC(unittest.TestCase):
     #         self.hw_build = hw_build
     #
 
+
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    suite.addTest(VerilatorHandshakedWireTC('test_fifo'))
+    suite.addTest(VerilatorHandshakedWireTC('test_nop'))
     # suite.addTest(unittest.makeSuite(VerilatorHandshakedWireTC))
     runner = unittest.TextTestRunner(verbosity=3)
     runner.run(suite)

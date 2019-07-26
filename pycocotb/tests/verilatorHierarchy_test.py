@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.tests.common import build_sim
 from pycocotb.constants import CLK_PERIOD
+from pycocotb.triggers import WaitCombStable
 
 
 class VerilatorHierarchyTC(unittest.TestCase):
@@ -50,7 +51,7 @@ class VerilatorHierarchyTC(unittest.TestCase):
             sim = HdlSimulator(rtl_sim)
 
             def check_if_can_read(sim):
-                yield sim.waitReadOnly()
+                yield WaitCombStable()
                 assert(len(io.fifo_inst.memory) == 3)
                 item0 = io.fifo_inst.memory[0]
                 item0.read()

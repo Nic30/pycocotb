@@ -1,5 +1,6 @@
 from pycocotb.agents.base import NOP, SyncAgentBase
 from collections import deque
+from pycocotb.triggers import WaitCombStable, WaitWriteOnly, WaitCombRead
 
 
 class HandshakedAgent(SyncAgentBase):
@@ -66,9 +67,9 @@ class HandshakedAgent(SyncAgentBase):
         """
         Collect data from interface
         """
-        yield sim.waitReadOnly()
+        yield WaitCombRead()
         if self.notReset(sim):
-            yield sim.waitWriteOnly()
+            yield WaitWriteOnly()
             # update rd signal only if required
             if self._lastRd is not 1:
                 self.setReady(1)
@@ -84,7 +85,7 @@ class HandshakedAgent(SyncAgentBase):
                     onMonitorReady(sim)
 
             # wait for response of master
-            yield sim.waitCombStable()
+            yield WaitCombStable()
             vld = self.getValid()
             try:
                 vld = int(vld)
@@ -106,13 +107,13 @@ class HandshakedAgent(SyncAgentBase):
                     self._afterRead(sim)
         else:
             if self._lastRd is not 0:
-                yield sim.waitWriteOnly()
+                yield WaitWriteOnly()
                 # can not receive, say it to masters
                 self.setReady(0)
                 self._lastRd = 0
 
     def checkIfRdWillBeValid(self, sim):
-        yield sim.waitCombStable()
+        yield WaitCombStable()
         rd = self.getReady()
         try:
             rd = int(rd)
@@ -125,7 +126,7 @@ class HandshakedAgent(SyncAgentBase):
 
         set vld high and wait on rd in high then pass new data
         """
-        yield sim.waitWriteOnly()
+        yield WaitWriteOnly()
         # pop new data if there are not any pending
         if self.actualData is NOP and self.data:
             self.actualData = self.data.popleft()
@@ -141,11 +142,11 @@ class HandshakedAgent(SyncAgentBase):
             self.setData(sim, data)
             self._lastWritten = self.actualData
 
-        yield sim.waitReadOnly()
+        yield WaitCombRead()
         en = self.notReset(sim)
         vld = int(en and doSend)
         if self._lastVld is not vld:
-            yield sim.waitWriteOnly()
+            yield WaitWriteOnly()
             self.setValid(vld)
             self._lastVld = vld
 
@@ -156,7 +157,7 @@ class HandshakedAgent(SyncAgentBase):
             return
 
         # wait for response of slave
-        yield sim.waitReadOnly()
+        yield WaitCombRead()
 
         rd = self.getReady()
         try:

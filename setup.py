@@ -31,6 +31,7 @@ setup(
     author='',
     install_requires=[
         "jinja2",  # template engine
+        "sortedcontainers", # for calendar queue in simulator
     ],
     author_email='michal.o.socials@gmail.com',
     ext_modules=[verilator_common],

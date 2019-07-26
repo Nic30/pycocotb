@@ -1,7 +1,7 @@
 from pycocotb.agents.base import AgentBase
 from pycocotb.constants import CLK_PERIOD
 from pycocotb.process_utils import CallbackLoop
-from pycocotb.triggers import Timer
+from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead
 
 
 DEFAULT_CLOCK = CLK_PERIOD
@@ -28,7 +28,7 @@ class ClockAgent(AgentBase):
 
     def driver(self, sim):
         sig = self.intf
-        yield sim.waitWriteOnly()
+        yield WaitWriteOnly()
         sig.write(0)
         yield Timer(self.initWait)
 
@@ -36,11 +36,11 @@ class ClockAgent(AgentBase):
             halfPeriod = self.period // 2
 
             yield Timer(halfPeriod)
-            yield sim.waitWriteOnly()
+            yield WaitWriteOnly()
             sig.write(1)
 
             yield Timer(halfPeriod)
-            yield sim.waitWriteOnly()
+            yield WaitWriteOnly()
             sig.write(0)
 
     def getMonitors(self):
@@ -50,7 +50,7 @@ class ClockAgent(AgentBase):
         return [self.monitor]
 
     def monitor(self, sim):
-        yield sim.waitReadOnly()
+        yield WaitCombRead()
         v = self.intf.read()
         try:
             v = int(v)

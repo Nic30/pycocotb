@@ -1,4 +1,4 @@
-from pycocotb.triggers import Edge
+from pycocotb.triggers import Edge, WaitCombRead
 from inspect import isgeneratorfunction
 
 
@@ -25,12 +25,7 @@ class CallbackLoop(object):
         self.shouldBeEnabledFn = shouldBeEnabledFn
         self._callbackIndex = None
         self._enable = True
-
-        try:
-            # if sig is interface we need internal signal
-            self.sig = sig._sigInside
-        except AttributeError:
-            self.sig = sig
+        self.sig = sig
 
     def setEnable(self, en, sim):
         self._enable = en
@@ -58,7 +53,7 @@ class OnRisingCallbackLoop(CallbackLoop):
         while True:
             yield Edge(self.sig)
             if self._enable and self.shouldBeEnabledFn():
-                yield sim.waitReadOnly()
+                yield WaitCombRead()
                 if int(self.sig.read()) == 1:
                     if self.isGenerator:
                         yield from self.fn(sim)
@@ -76,7 +71,7 @@ class OnFallingCallbackLoop(CallbackLoop):
         while True:
             yield Edge(self.sig)
             if self._enable and self.shouldBeEnabledFn():
-                yield sim.waitReadOnly()
+                yield WaitCombRead()
                 if int(self.sig.read()) == 0:
                     if self.isGenerator:
                         yield from self.fn(sim)

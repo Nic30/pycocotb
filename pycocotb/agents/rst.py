@@ -1,6 +1,6 @@
 from pycocotb.agents.base import AgentBase
 from pycocotb.constants import CLK_PERIOD
-from pycocotb.triggers import Timer
+from pycocotb.triggers import Timer, WaitWriteOnly
 
 
 class PullUpAgent(AgentBase):
@@ -15,10 +15,10 @@ class PullUpAgent(AgentBase):
 
     def driver(self, sim):
         sig = self.intf
-        yield sim.waitWriteOnly()
+        yield WaitWriteOnly()
         sig.write(0)
         yield Timer(self.initDelay)
-        yield sim.waitWriteOnly()
+        yield WaitWriteOnly()
         sig.write(1)
 
 
@@ -35,8 +35,8 @@ class PullDownAgent(AgentBase):
 
     def driver(self, sim):
         sig = self.intf
-        yield sim.waitWriteOnly()
+        yield WaitWriteOnly()
         sig.write(1)
         yield Timer(self.initDelay)
-        yield sim.waitWriteOnly()
+        yield WaitWriteOnly()
         sig.write(0)

@@ -8,15 +8,12 @@ class Event():
 
     :param process_to_wake: list of sim. processes (generator instances)
         to wake when this event is triggered
-    :param beforeCb: callback function which is called before this event is resolved
-    :param afterCb: callback function which is called after this event is resolved
     """
-    __slots__ = ["debug_name", "process_to_wake", "beforeCb", "afterCb"]
+    __slots__ = ["debug_name", "process_to_wake"]
+
     def __init__(self, debug_name=None):
         self.debug_name = debug_name
         self.process_to_wake = []
-        self.beforeCb = None
-        self.afterCb = None
 
     def __iter__(self):
         return iter(self.process_to_wake)
@@ -32,17 +29,6 @@ class Event():
             return super(Event, self).__repr__()
         else:
             return "<Event {} {:#018x}>".format(self.debug_name, id(self))
-
-
-class Edge(Event):
-    def __init__(self, signal: "RtlSignal"):
-        self.signal = signal
-
-    def applyProcess(self, sim, process):
-        self.signal.wait(process)
-
-
-# [TODO] RisingEdge/FallingEdge with support in c++ code
 
 
 class StopSimumulation(BaseException):
@@ -61,59 +47,96 @@ def raise_StopSimulation(sim):
     yield
 
 
-PRIORITY_URGENT = 0
+class Action():
+
+    def applyProcess(self, sim, process):
+        raise NotImplementedError()
 
 
-class SimStep(object):
-    pass
+# [TODO] RisingEdge/FallingEdge with support in c++ code
+class Edge(Action):
+
+    def __init__(self, signal: "RtlSignal"):
+        self.signal = signal
+
+    def applyProcess(self, sim, process):
+        self.signal.wait(process)
+        return False
 
 
-class WriteOnly(SimStep):
-    """
-    Start of evaluation of RTL simulator, in this phase
-    only write is allowed
-    """
-    PRIORITY = PRIORITY_URGENT + 1
-
-
-class ReadOnly(SimStep):
-    """
-    Update of combinational logic was performed and now
-    it is possible to read values and wait again on WriteOnly to update
-    circuit again
-
-    After this RTL simulation step is restarted if some process requires to write again
-    """
-    PRIORITY = WriteOnly.PRIORITY
-
-
-class CombStable(SimStep):
-    """
-    Combinational logic is stable and no update update
-    of any IO is allowed on this time stamp
-    """
-    PRIORITY = ReadOnly.PRIORITY + 1
-
-
-class AllStable(SimStep):
-    """
-    All values in circuit are stable for this time stamp
-
-    After this simulation time will be updated and new delta step will begin
-    """
-    PRIORITY = CombStable.PRIORITY + 1
-
-
-class Timer():
+class Timer(Action):
     """
     Container for wait time of processes
 
     next activation of process will be now + time
     """
 
-    def __init__(self, time, priority=WriteOnly.PRIORITY):
+    def __init__(self, time):
         self.time = time
-        self.priority = priority
+
+    def applyProcess(self, sim, process):
+        sim._schedule_proc(sim.now + self.time, process)
+        # return false to notify that the evaluation should be paused
+        return False
 
     def __repr__(self):
         return "<Timer %r>" % (self.time)
+
+
+class DONE:
+    pass
+
+
+class WaitWriteOnly(Action):
+
+    def applyProcess(self, sim, process):
+        t = sim._current_time_slot
+        ev_list = t.write_only
+        if ev_list is None:
+            ev_list = t.write_only = []
+        elif ev_list is DONE:
+            raise AssertionError("Can not write in this time slot any more")
+        ev_list.append(process)
+        return False
+
+
+class WaitCombRead(Action):
+
+    def applyProcess(self, sim, process):
+        t = sim._current_time_slot
+        ev_list = t.comb_read
+        if ev_list is None:
+            ev_list = t.comb_read = []
+        elif ev_list is DONE:
+            # use later read only event as the condition is satisfied
+            ev_list = sim._current_event_list
+        ev_list.append(process)
+        return False
+
+
+class WaitCombStable(Action):
+
+    def applyProcess(self, sim, process):
+        t = sim._current_time_slot
+        ev_list = t.comb_stable
+        if ev_list is None:
+            ev_list = t.comb_stable = []
+        elif ev_list is DONE:
+            # use later read only event as the condition is satisfied
+            ev_list = sim._current_event_list
+
+        ev_list.append(process)
+        return False
+
+
+class WaitAllStable(Action):
+
+    def applyProcess(self, sim, process):
+        t = sim._current_time_slot
+        ev_list = t.read_only
+        if ev_list is None:
+            ev_list = t.read_only = []
+        elif ev_list == DONE:
+            ev_list = sim._current_event_list
+        ev_list.append(process)
+        return False
