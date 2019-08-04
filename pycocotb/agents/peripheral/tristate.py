@@ -1,30 +1,41 @@
 from collections import deque
-from typing import Tuple
+from typing import Tuple, Union
 
 from pycocotb.agents.base import AgentWitReset, NOP
 from pycocotb.agents.clk import DEFAULT_CLOCK
+from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead, Edge
 
 
 class TristateAgent(AgentWitReset):
+    """
+    :ivar selfSynchronization: if True the agent reads/write with a perior of DEFAULT_CLOCK
+    :ivar pullMode: specifies how the interface should behave if none drives it
+                    can be (1: pull-up, 0: pull-down, None: disconnected)
+    """
 
-    def __init__(self, intf: Tuple["RtlSignal", "RtlSignal", "RtlSignal"],
-                 rst: "RtlSignal", rst_negated: bool):
+    def __init__(self, sim: HdlSimulator, intf: Tuple["RtlSignal", "RtlSignal", "RtlSignal"],
+                 rst: Tuple["RtlSignal", bool]):
         """
         :param intf: tuple (i signal, o signal, t signal) as present in tristate interface
         :note: t signal controls if the output should be connected, if 't'=0 the 'o' does not have effect
         """
-        super(TristateAgent, self).__init__(intf, rst, rst_negated)
+        super(TristateAgent, self).__init__(sim, intf, rst)
         self.i, self.o, self.t = intf
         self.data = deque()
         # can be (1: pull-up, 0: pull-down, None: disconnected)
-        self.pullMode = 1
+        self.pullMode: Union[1, 0, None] = 1
         self.selfSynchronization = True
         self.collectData = True
 
     def monitor(self, sim):
-        # read in pre-clock-edge
+        """
+        The evaluate a tristate 'i' value from 'o' and 't'
+        and optionaly store it.
+        One step.
+        """
         yield WaitCombRead()
+        # read in pre-clock-edge
         t = self.t.read()
         o = self.o.read()
 
@@ -48,15 +59,23 @@ class TristateAgent(AgentWitReset):
             v = o
         else:
             v = self.pullMode
+
+        last = self.i.read()
+        try:
+            last = int(last)
+        except ValueError:
+            last = None
+
         yield WaitWriteOnly()
         self.i.write(v)
+
         if self.collectData and sim.now > 0:
             yield WaitCombRead()
             if self.notReset(sim):
                 self.data.append(v)
 
     def getMonitors(self):
-        return [self.onTWriteCallback__init, ]
+        return [self.onTWriteCallback(), ]
 
     def onTWriteCallback(self, sim):
         while True:
@@ -65,7 +84,10 @@ class TristateAgent(AgentWitReset):
             if self.getEnable():
                 yield from self.monitor(sim)
 
-    def _write(self, val, sim):
+    def _write(self, val: Union[int, NOP]):
+        """
+        Update value on interface.
+        """
         if val is NOP:
             # control now has slave
             t = 0
@@ -78,13 +100,17 @@ class TristateAgent(AgentWitReset):
         self.t.write(t)
         self.o.write(o)
 
-    def onTWriteCallback__init(self, sim):
+    def _read(self):
         """
-        Process for injecting of this callback loop into simulator
+        :return: actual value on interface
         """
-        yield self.onTWriteCallback(sim)
+        return self.i.read()
 
-    def driver(self, sim):
+    def driver(self):
+        """
+        Drive 'o' and 't' from data buffer.
+        One step if not selfSynchronization else infinite loop.
+        """
         while True:
             yield WaitWriteOnly()
             if self.data:
@@ -104,85 +130,30 @@ class TristateAgent(AgentWitReset):
 
 
 class TristateClkAgent(TristateAgent):
+    """
+    Agent for tri-state interface which generates clock signal
+    """
 
-    def __init__(self, intf, rst: "RtlSignal", rst_negated:bool,
-                 onRisingCallback=None, onFallingCallback=None):
-        super(TristateClkAgent, self).__init__(intf, rst, rst_negated)
-        self.onRisingCallback = onRisingCallback
-        self.onFallingCallback = onFallingCallback
+    def __init__(self, sim: HdlSimulator, intf, rst: Tuple["RtlSignal", bool]):
+        super(TristateClkAgent, self).__init__(sim, intf, rst)
         self.period = DEFAULT_CLOCK
+        self.collectData = False
 
-    def driver(self, sim):
+    def driver(self):
         o = self.o
         high = self.pullMode
         low = not self.pullMode
-        halfPeriod = self.period / 2
+        halfPeriod = self.period // 2
 
         yield WaitWriteOnly()
         o.write(low)
         self.t.write(1)
-        if high:
-            onHigh = self.onRisingCallback
-            onLow = self.onFallingCallback
-        else:
-            onHigh = self.onFallingCallback
-            onLow = self.onRisingCallback
 
         while True:
             yield Timer(halfPeriod)
             yield WaitWriteOnly()
             o.write(high)
 
-            if onHigh:
-                yield onHigh(sim)
-
             yield Timer(halfPeriod)
             yield WaitWriteOnly()
             o.write(low)
-
-            if onLow:
-                yield onLow(sim)
-
-    def monitor(self, sim):
-        yield WaitCombRead()
-        # read in pre-clock-edge
-        t = self.t.read()
-        o = self.o.read()
-
-        if sim.now > 0 and self.pullMode is not None:
-            try:
-                t = int(t)
-            except ValueError:
-                raise AssertionError(
-                sim.now, self.t, "This mode, this value => ioblock would burn")
-            try:
-                o = int(o)
-            except ValueError:
-                raise AssertionError(
-                sim.now, self.o, "This mode, this value => ioblock would burn")
-            if self.pullMode != o:
-                raise AssertionError(
-                sim.now, self.o, "This mode, this value => ioblock would burn")
-
-        if int(t):
-            v = o
-        else:
-            v = self.pullMode
-
-        last = self.i.read()
-        try:
-            last = int(last)
-        except ValueError:
-            last = None
-
-        yield WaitWriteOnly()
-        self.i.write(v)
-
-        if self.onRisingCallback and (not last) and v:
-            yield self.onRisingCallback(sim)
-
-        if self.onFallingCallback and not v and (last or last is None):
-            yield self.onFallingCallback(sim)
-
-    def getMonitors(self):
-        return [self.onTWriteCallback__init]

@@ -170,9 +170,8 @@ class HdlSimulator():
         now = self.now
         time_slot = SimTimeSlot()
         time_slot.write_only = []
-        for p in extraProcesses:
-            proc = p(self)
-            assert isgenerator(proc), (proc, p)
+        for proc in extraProcesses:
+            assert isgenerator(proc), proc
             time_slot.write_only.append(proc)
         # add handle to stop simulation
         self.schedule(now, time_slot)
@@ -249,7 +248,9 @@ class HdlSimulator():
                 rtl_sim.set_write_only()
 
         except StopSimumulation:
-            return
+            pass
+        finally:
+            rtl_sim.finalize()
 
     def _schedule_proc_now(self, ev):
         assert isinstance(ev, (Action, Event)) or isgenerator(ev), ev

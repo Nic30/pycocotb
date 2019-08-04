@@ -1,5 +1,6 @@
 from pycocotb.agents.base import AgentBase
 from pycocotb.constants import CLK_PERIOD
+from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.triggers import Timer, WaitWriteOnly
 
 
@@ -8,12 +9,13 @@ class PullUpAgent(AgentBase):
     After specified time value of the signal is set to 1
     :note: usually used for negated reset
     """
-    def __init__(self, intf, initDelay=0.6 * CLK_PERIOD):
+
+    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", initDelay=0.6 * CLK_PERIOD):
+        super(PullUpAgent, self).__init__(sim, intf)
         self.initDelay = initDelay
-        self.intf = intf
         self.data = []
 
-    def driver(self, sim):
+    def driver(self):
         sig = self.intf
         yield WaitWriteOnly()
         sig.write(0)
@@ -28,12 +30,12 @@ class PullDownAgent(AgentBase):
     :note: usually used for reset
     """
 
-    def __init__(self, intf, initDelay=0.6 * CLK_PERIOD):
+    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", initDelay=0.6 * CLK_PERIOD):
+        super(PullDownAgent, self).__init__(sim, intf)
         self.initDelay = initDelay
-        self.intf = intf
         self.data = []
 
-    def driver(self, sim):
+    def driver(self):
         sig = self.intf
         yield WaitWriteOnly()
         sig.write(1)

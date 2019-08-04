@@ -9,7 +9,9 @@ from typing import Tuple
 
 from pycocotb.agents.base import AgentBase
 from pycocotb.constants import Time
+from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.triggers import Timer, WaitAllStable
+
 
 # constants for most common baud rates
 BAUD_9600 = 9600
@@ -28,8 +30,8 @@ class UartDataAgent(AgentBase):
     START_BIT = 0
     STOP_BIT = 1
 
-    def __init__(self, intf: "RtlSignal", baud: int):
-        super(UartDataAgent, self).__init__(intf)
+    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", baud: int):
+        super(UartDataAgent, self).__init__(sim, intf)
         self.set_baud(self, baud)
         self.char_buff = []
         self.data = deque()
@@ -48,7 +50,7 @@ class UartDataAgent(AgentBase):
         Add text to agent data (agent will send it as soon as ready)
         """
 
-    def monitor(self, sim):
+    def monitor(self):
         half_period = Timer(self.bit_period // 2)
         period = Timer(self.bit_period)
         intf = self.intf

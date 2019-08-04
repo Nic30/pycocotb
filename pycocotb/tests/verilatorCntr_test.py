@@ -65,7 +65,7 @@ class VerilatorCntrTC(unittest.TestCase):
             io = rtl_sim.io
             data = []
 
-            def data_collector(sim):
+            def data_collector():
                 yield Timer(CLK_PERIOD // 2)
                 assert sim.now == CLK_PERIOD // 2
 
@@ -77,14 +77,13 @@ class VerilatorCntrTC(unittest.TestCase):
 
             sim = HdlSimulator(rtl_sim)
             # rtl_sim.set_trace_file("cntr.vcd", -1)
-            sim.run(CLK_PERIOD * 10.5,
-                    extraProcesses=[
-                        get_clk_driver(io.clk, CLK_PERIOD),
-                        get_rst_driver(io.rst, CLK_PERIOD),
-                        get_pull_up_driver(io.en, CLK_PERIOD),
-                        data_collector
-                        ]
-                    )
+            procs = [
+                get_clk_driver(sim, io.clk, CLK_PERIOD),
+                get_rst_driver(sim, io.rst, CLK_PERIOD),
+                get_pull_up_driver(sim, io.en, CLK_PERIOD),
+                data_collector()
+            ]
+            sim.run(CLK_PERIOD * 10.5, extraProcesses=procs)
 
             self.assertSequenceEqual(data, REF_DATA)
 
@@ -103,14 +102,13 @@ class VerilatorCntrTC(unittest.TestCase):
             data = []
 
             # rtl_sim.set_trace_file("cntr.vcd", -1)
-            sim.run(CLK_PERIOD * 10.5,
-                    extraProcesses=[
-                        get_clk_driver(io.clk, CLK_PERIOD),
-                        get_rst_driver(io.rst, CLK_PERIOD),
-                        get_pull_up_driver(io.en, CLK_PERIOD),
-                        get_sync_sig_monitor(io.val, io.clk, io.rst, data)
-                        ]
-                    )
+            procs = [
+                get_clk_driver(sim, io.clk, CLK_PERIOD),
+                get_rst_driver(sim, io.rst, CLK_PERIOD),
+                get_pull_up_driver(sim, io.en, CLK_PERIOD),
+                get_sync_sig_monitor(sim, io.val, io.clk, io.rst, data)
+            ]
+            sim.run(CLK_PERIOD * 10.5, extraProcesses=procs)
 
             self.assertSequenceEqual(data, REF_DATA)
 
@@ -129,14 +127,13 @@ class VerilatorCntrTC(unittest.TestCase):
 
             sim = HdlSimulator(rtl_sim)
             # rtl_sim.set_trace_file("cntr.vcd", -1)
-            sim.run(CLK_PERIOD * 10.5,
-                    extraProcesses=[
-                        get_clk_driver(io.clk, CLK_PERIOD),
-                        get_rst_driver(io.rst, CLK_PERIOD),
-                        get_pull_up_driver_with_reset(io.en, io.rst, CLK_PERIOD),
-                        get_sync_sig_monitor(io.val, io.clk, io.rst, data)
-                        ]
-                    )
+            proc = [
+                get_clk_driver(sim, io.clk, CLK_PERIOD),
+                get_rst_driver(sim, io.rst, CLK_PERIOD),
+                get_pull_up_driver_with_reset(sim, io.en, io.rst, CLK_PERIOD),
+                get_sync_sig_monitor(sim, io.val, io.clk, io.rst, data)
+            ]
+            sim.run(CLK_PERIOD * 10.5, extraProcesses=proc)
 
             self.assertSequenceEqual(data, REF_DATA)
 
@@ -156,14 +153,13 @@ class VerilatorCntrTC(unittest.TestCase):
 
             sim = HdlSimulator(rtl_sim)
             # rtl_sim.set_trace_file(join(build_dir, "cntr.vcd"), -1)
-            sim.run(CLK_PERIOD * 10.5,
-                    extraProcesses=[
-                        get_clk_driver(io.clk, CLK_PERIOD),
-                        get_rst_driver(io.rst, CLK_PERIOD),
-                        *get_sync_pull_up_driver_with_reset(io.en, io.clk, io.rst),
-                        get_sync_sig_monitor(io.val, io.clk, io.rst, data)
-                        ]
-                    )
+            proc = [
+                get_clk_driver(sim, io.clk, CLK_PERIOD),
+                get_rst_driver(sim, io.rst, CLK_PERIOD),
+                get_sync_pull_up_driver_with_reset(sim, io.en, io.clk, io.rst),
+                get_sync_sig_monitor(sim, io.val, io.clk, io.rst, data)
+            ]
+            sim.run(CLK_PERIOD * 10.5, extraProcesses=proc)
 
             self.assertSequenceEqual(data, REF_DATA)
 
@@ -176,10 +172,10 @@ class VerilatorCntrTC(unittest.TestCase):
             sim = HdlSimulator(rtl_sim)
             data = []
             procs = [
-                *ClockAgent(io.clk).getDrivers(),
-                *PullDownAgent(io.rst).getDrivers(),
-                *PullUpAgent(io.en, initDelay=CLK_PERIOD).getDrivers(),
-                get_sync_sig_monitor(io.val, io.clk, io.rst, data)
+                *ClockAgent(sim, io.clk).getDrivers(),
+                *PullDownAgent(sim, io.rst).getDrivers(),
+                *PullUpAgent(sim, io.en, initDelay=CLK_PERIOD).getDrivers(),
+                get_sync_sig_monitor(sim, io.val, io.clk, io.rst, data)
             ]
             rtl_sim.set_trace_file(join(build_dir, "cntr.vcd"), -1)
             sim.run(CLK_PERIOD * 10.5, extraProcesses=procs)

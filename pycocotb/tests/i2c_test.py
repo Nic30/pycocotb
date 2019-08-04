@@ -61,24 +61,26 @@ class I2cAgent_TC(unittest.TestCase):
 
     def build_I2c_wire_with_agents(self, build_dir):
         rtl_sim, i, o = self.build_I2c_wire(build_dir)
-        i_ag = I2cAgent(i.as_tuple(), None, False)
-        o_ag = I2cAgent(o.as_tuple(), None, False)
+        sim = HdlSimulator(rtl_sim)
+
+        i_ag = I2cAgent(sim, i.as_tuple(), (None, False))
+        o_ag = I2cAgent(sim, o.as_tuple(), (None, False))
         procs = [*i_ag.getDrivers(), *o_ag.getMonitors()]
+        # because the pullup is already on other side of interface
         o_ag.sda.pullMode = None
         o_ag.scl.pullMode = None
 
-        return rtl_sim, i_ag, o_ag, procs
+        return sim, i_ag, o_ag, procs
 
     def test_nop(self):
         # build_dir = "tmp"
         # if True:
         with TemporaryDirectory() as build_dir:
-            rtl_sim, i_ag, o_ag, procs = self.build_I2c_wire_with_agents(build_dir)
+            sim, i_ag, o_ag, procs = self.build_I2c_wire_with_agents(build_dir)
             ref = [0]
             i_ag.bits.extend(ref)
 
-            sim = HdlSimulator(rtl_sim)
-            # rtl_sim.set_trace_file("I2c_wire.vcd", -1)
+            # sim.rtl_simulator.set_trace_file("I2c_wire.vcd", -1)
             sim.run(10 * CLK_PERIOD, extraProcesses=procs)
             self.assertSequenceEqual(o_ag.bits,
                                      [I2cAgent.START] + [0 for _ in range(10)])
@@ -87,14 +89,13 @@ class I2cAgent_TC(unittest.TestCase):
         # build_dir = "tmp"
         # if True:
         with TemporaryDirectory() as build_dir:
-            rtl_sim, i_ag, o_ag, procs = self.build_I2c_wire_with_agents(build_dir)
+            sim, i_ag, o_ag, procs = self.build_I2c_wire_with_agents(build_dir)
 
             ref = [1, 0, 0, 1, 1, 1, 0, 1, 0]
             expected = [I2cAgent.START, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0]
             i_ag.bits.extend(ref)
 
-            sim = HdlSimulator(rtl_sim)
-            # rtl_sim.set_trace_file("I2c_wire.vcd", -1)
+            # sim.rtl_simulator.set_trace_file("I2c_wire.vcd", -1)
             sim.run(10 * CLK_PERIOD, extraProcesses=procs)
             self.assertSequenceEqual(o_ag.bits,
                                      expected)

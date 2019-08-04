@@ -7,6 +7,7 @@ from pycocotb.tests.verilatorCntr_test import VerilatorCntrTC
 from pycocotb.tests.verilatorHierarchy_test import VerilatorHierarchyTC
 from pycocotb.tests.wire_test import VerilatorWireTC
 from pycocotb.tests.verilatorHandshakedWire_test import VerilatorHandshakedWireTC
+from pycocotb.tests.i2c_test import I2cAgent_TC
 
 
 def testSuiteFromTCs(*tcs):
@@ -22,6 +23,7 @@ suite = testSuiteFromTCs(
     VerilatorWireTC,
     VerilatorHierarchyTC,
     VerilatorHandshakedWireTC,
+    #I2cAgent_TC,
 )
 
 if __name__ == '__main__':

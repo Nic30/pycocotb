@@ -1,10 +1,11 @@
-import unittest
-from tempfile import TemporaryDirectory
 from os.path import join
-from pycocotb.hdlSimulator import HdlSimulator
+from tempfile import TemporaryDirectory
+import unittest
+
 from pycocotb.constants import CLK_PERIOD
-from pycocotb.triggers import Timer, WaitCombRead, WaitWriteOnly
+from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.tests.common import build_sim
+from pycocotb.triggers import Timer, WaitCombRead, WaitWriteOnly
 
 
 class VerilatorWireTC(unittest.TestCase):
@@ -31,7 +32,7 @@ class VerilatorWireTC(unittest.TestCase):
 
             readed = []
 
-            def data_collect(sim):
+            def data_collect():
                 for d_ref in test_data:
                     yield WaitCombRead()
                     d = io.outp.read()
@@ -40,7 +41,7 @@ class VerilatorWireTC(unittest.TestCase):
                     self.assertEqual(d, d_ref)
                     yield Timer(CLK_PERIOD)
 
-            def data_feed(sim):
+            def data_feed():
                 for d in test_data:
                     yield WaitWriteOnly()
                     io.inp.write(d)
@@ -49,8 +50,8 @@ class VerilatorWireTC(unittest.TestCase):
             rtl_sim.set_trace_file(join(build_dir, "wire%d.vcd" % DW), -1)
             sim.run(CLK_PERIOD * (len(test_data) + 0.5),
                     extraProcesses=[
-                        data_collect,
-                        data_feed
+                        data_collect(),
+                        data_feed()
                         ]
                     )
             self.assertEqual(len(readed), len(test_data))
