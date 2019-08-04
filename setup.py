@@ -35,4 +35,5 @@ setup(
     ],
     author_email='michal.o.socials@gmail.com',
     ext_modules=[verilator_common],
+    test_suite="pycocotb.tests.all.suite"
 )
