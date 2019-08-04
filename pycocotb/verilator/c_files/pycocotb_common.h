@@ -22,3 +22,8 @@ enum SimEventType {
 
 // Coroutine which generates pairs <isEndOfSim, clockSignal*>
 using sim_step_t = boost::coroutines2::coroutine<std::pair<SimEventType, CData*>>;
+
+// raised if current delata step should be restarted instead of finishing of the evaluation
+class DeltaStepRestart: public std::exception {
+	using std::exception::exception;
+};

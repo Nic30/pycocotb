@@ -10,7 +10,7 @@ template<typename DUT_t>
 struct _PySim_t {
 	PyObject_HEAD
 	// simulator of DUT
-	DUT_t *dut;
+	DUT_t * dut;
 	// coroutine of simulation step
 	sim_step_t::pull_type * actual_sim_step;
 	// python IO for signals
@@ -35,7 +35,6 @@ struct _PySim_t {
 
 // The methods witch does not depend on DUT type are precompiled to same compilation time later
 int PySim_eval_event_triggers(_PySim_t<void*>* self);
-PyObject * PySim_reset_eval(_PySim_t<void*>* self, PyObject* args);
 PyObject * PySim_eval(_PySim_t<void*>* self, PyObject* args);
 PyObject * PySim_set_write_only(_PySim_t<void*> * self, PyObject* args);
 
@@ -57,9 +56,7 @@ PyObject * PySim_set_trace_file(_PySim_t<DUT_t> * self, PyObject* args) {
 		delete self->tfp;
 		self->tfp = nullptr;
 		free(self->trace_file_name);
-	}
-
-	if (self->tfp == nullptr) {
+	} else if (self->tfp == nullptr) {
 		Verilated::traceEverOn(true);
 		self->trace_file_name = strdup(trace_file);
 		Verilated::traceEverOn(true);  // Verilator must compute traced signals
@@ -113,7 +110,6 @@ void PySim_dealloc(_PySim_t<DUT_t>* self) {
 		s.destroy();
 	}
 	delete self->signals;
-
 	delete self->dut;
 
 	Py_TYPE(self)->tp_free((PyObject*) self);
@@ -128,25 +124,16 @@ static void PySim_call_eval_sim(sim_step_t::push_type &sink, DUT_t * sim) {
 }
 
 template<typename DUT_t>
-static void PySim_reset_simulation_deltastep(_PySim_t<DUT_t> *self) {
-	using std::placeholders::_1;
-	DUT_t * dut = self->dut;
-	if (self->actual_sim_step) {
-		delete self->actual_sim_step;
-	}
-	// _1 means first parameter of call_eval will be sim
-	// when coroutine obj. is constructed function is evaluated
-	// until sink is triggered
-	self->actual_sim_step = new sim_step_t::pull_type(
-			std::bind(PySim_call_eval_sim<DUT_t>, _1, dut));
-}
-
-template<typename DUT_t>
 PyObject * PySim_eval(_PySim_t<DUT_t>* self, PyObject* args) {
 	if (self->actual_sim_step) {
 		(*(self->actual_sim_step))();
 	} else {
-		PySim_reset_simulation_deltastep(self);
+		using std::placeholders::_1;
+		// _1 means first parameter of call_eval will be sim
+		// when coroutine obj. is constructed function is evaluated
+		// until sink is triggered
+		self->actual_sim_step = new sim_step_t::pull_type(
+				std::bind(PySim_call_eval_sim<DUT_t>, _1, self->dut));
 	}
 	self->read_only_not_write_only = true;
 
@@ -154,9 +141,23 @@ PyObject * PySim_eval(_PySim_t<DUT_t>* self, PyObject* args) {
 		return nullptr;
 	auto end_type = self->actual_sim_step->get().first;
 	// Dump trace data for this step
-	if (end_type == SIM_EV_END_OF_STEP && self->tfp) {
+	// end_type == SIM_EV_END_OF_STEP &&
+	if (self->tfp) {
+		// auto vlSymsp = self->dut->__VlSymsp;  // Setup global symbol table
+		// printf("dump-end-of-step %lu __Vm_activity: %u __Vm_didInit: %u \n",
+		// 		self->time, vlSymsp->__Vm_activity, vlSymsp->__Vm_didInit);
 		self->tfp->dump(self->time);
 	}
 	return PyLong_FromLong(end_type);
 }
 
+template<typename DUT_t>
+PyObject * PySim_reset_eval(_PySim_t<DUT_t>* self, PyObject* args) {
+	self->dut->__restart_delta_step = true;
+	self->read_only_not_write_only = false;
+	if (self->tfp) {
+		// printf("PySim_reset_eval %lu\n", self->time);
+		self->tfp->dump(self->time);
+	}
+	Py_RETURN_NONE;
+}

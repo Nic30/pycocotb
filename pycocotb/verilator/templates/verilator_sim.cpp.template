@@ -1,30 +1,71 @@
 #include "pycocotb_sim.h"
 
+// hack to allow access to V{{top_name}} private methods
+#define private friend class {{top_name}}_wrap; private
 #include "V{{top_name}}.h"
+#undef private
 #include "V{{top_name}}__Syms.h"
 
 
 ////////////////////////////////////////////// sim wrapper //////////////////////////////////////////////
 class {{top_name}}_wrap: public V{{top_name}} {
+	friend class V{{top_name}};
 public:
     sim_step_t::push_type* __pause_sink;
     bool __comb_update_triggered;
+    bool __restart_delta_step;
 
     {{top_name}}_wrap(): V{{top_name}}("{{top_name}}"), __pause_sink(nullptr),
-            __comb_update_triggered(false) {
+            __comb_update_triggered(false), __restart_delta_step(false) {
     }
     {{top_name}}_wrap(const {{top_name}}_wrap &) = delete;
     void eval() {
-        V{{top_name}}__Syms* __restrict vlSymsp = this->__VlSymsp;
-        __comb_update_triggered = false;
-        // [TODO]
-        _eval_settle(vlSymsp);
-        V{{top_name}}::eval();
-        if (!__comb_update_triggered) {
-            __comb_update_triggered = true;
-            (*__pause_sink)({SIM_EV_COMB_UPDATE_DONE, nullptr});
-        }
-        (*__pause_sink)({SIM_EV_END_OF_STEP, nullptr});
+        VL_DEBUG_IF(VL_DBG_MSGF("+++++TOP Evaluate VHandshakedFifo::eval\n"); );
+        V{{top_name}}__Syms* __restrict vlSymsp = this->__VlSymsp; // Setup global symbol table
+        V{{top_name}}* __restrict vlTOPp VL_ATTR_UNUSED = vlSymsp->TOPp;
+
+#ifdef VL_DEBUG
+        // Debug assertions
+        _eval_debug_assertions();
+#endif
+		try {
+	        // Initialize
+	        if (VL_UNLIKELY(!vlSymsp->__Vm_didInit)) _eval_initial_loop(vlSymsp);
+
+	        __comb_update_triggered = false;
+	        // Evaluate till stable
+	        int __VclockLoop = 0;
+	        QData __Vchange = 1;
+	        do {
+	            VL_DEBUG_IF(VL_DBG_MSGF("+ Clock loop\n"););
+	            vlSymsp->__Vm_activity = true;
+	            // [TODO]
+        		_eval_settle(vlSymsp);
+	            V{{top_name}}::_eval(vlSymsp);
+	            if (VL_UNLIKELY(++__VclockLoop > 100)) {
+	                // About to fail, so enable debug to see what's not settling.
+	                // Note you must run make with OPT=-DVL_DEBUG for debug prints.
+	                int __Vsaved_debug = Verilated::debug();
+	                Verilated::debug(1);
+	                __Vchange = _change_request(vlSymsp);
+	                Verilated::debug(__Vsaved_debug);
+	                VL_FATAL_MT(__FILE__,__LINE__,__FILE__,"Verilated model didn't converge");
+	            } else {
+	                __Vchange = _change_request(vlSymsp);
+	            }
+	            if (!__comb_update_triggered) {
+	                __comb_update_triggered = true;
+	                (*__pause_sink)({SIM_EV_COMB_UPDATE_DONE, nullptr});
+		        	if (__restart_delta_step) {
+			        	throw DeltaStepRestart();
+			        }
+	            }
+	        } while (VL_UNLIKELY(__Vchange));
+	        (*__pause_sink)({SIM_EV_END_OF_STEP, nullptr});
+		} catch (const DeltaStepRestart & e) {
+			__restart_delta_step = false;
+			// printf("delta step restarted\n");
+		}
     }
 
     virtual void onBeforeEdge(V{{top_name}}__Syms* __restrict vlSymsp, CData &clkSig) override {
@@ -32,9 +73,15 @@ public:
         if (!__comb_update_triggered) {
             __comb_update_triggered = true;
             (*__pause_sink)({SIM_EV_COMB_UPDATE_DONE, nullptr});
+	        if (__restart_delta_step) {
+	        	throw DeltaStepRestart();
+	        }
         }
 
         (*__pause_sink)({SIM_EV_BEFORE_EDGE, &clkSig});
+        if (__restart_delta_step) {
+        	throw DeltaStepRestart();
+        }
     }
     virtual ~{{top_name}}_wrap() {
     }
@@ -119,7 +166,7 @@ static PyObject * PySim_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
 
 static PyMethodDef PySim_methods[] = {
         {"eval", (PyCFunction)PySim_eval<DUT_t>, METH_NOARGS, "single simulation step"},
-        {"reset_eval", (PyCFunction)PySim_reset_eval, METH_NOARGS, "reset evaluation"},
+        {"reset_eval", (PyCFunction)PySim_reset_eval<DUT_t>, METH_NOARGS, "reset evaluation"},
         {"set_trace_file", (PyCFunction)PySim_set_trace_file<DUT_t>, METH_VARARGS,
                 "set file where data from signals should be stored\n"
                 "\n"

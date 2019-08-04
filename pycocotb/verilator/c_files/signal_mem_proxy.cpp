@@ -117,17 +117,16 @@ SignalMemProxy_write(SignalMemProxy_t* self, PyObject* args) {
 				"Can not change signal value in read only simulation phase.");
 		return nullptr;
 	}
-
 	if (reinterpret_cast<PyObject*>(val) == Py_None) {
 		SET_INVALID(self->signal, self->signal_bytes);
 	} else if (!PyLong_Check(val)) {
-		PyErr_SetString(PyExc_ValueError, "Argument has to be an integer.");
+		PyErr_SetString(PyExc_ValueError, "Argument has to be an integer or None.");
 		return nullptr;
 	} else {
 		if (_PyLong_AsByteArray(val, self->signal, self->signal_bytes, 1,
 				self->is_signed)) {
 			PyErr_SetString(PyExc_ValueError,
-					"Argument can not convert value to byte[]");
+					"Can not convert value to byte[] (_PyLong_AsByteArray failed)");
 			return nullptr;
 		}
 	}
@@ -150,7 +149,7 @@ SignalMemProxy_wait(SignalMemProxy_t* self, PyObject* args) {
 }
 
 void SignalMemProxy_cache_value(SignalMemProxy_t* self) {
-	memcpy(self->value_cache, self->signal, self->signal_bits);
+	memcpy(self->value_cache, (const void *) self->signal, self->signal_bits);
 }
 
 bool SignalMemProxy_value_changed(SignalMemProxy_t* self) {

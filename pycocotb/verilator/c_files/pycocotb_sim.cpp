@@ -19,16 +19,6 @@ int PySim_eval_event_triggers(_PySim_t<void*>* self) {
 	return 0;
 }
 
-PyObject * PySim_reset_eval(_PySim_t<void*>* self, PyObject* args) {
-	if (self->actual_sim_step) {
-		delete self->actual_sim_step;
-		self->actual_sim_step = nullptr;
-		self->read_only_not_write_only = false;
-	}
-
-	Py_RETURN_NONE;
-}
-
 PyObject * PySim_set_write_only(_PySim_t<void*> * self, PyObject* args) {
 	self->read_only_not_write_only = false;
 	Py_RETURN_NONE;
@@ -41,13 +31,15 @@ PyMemberDef PySim_members[8] = {
     	(char *)"actual simulation time"},
     {(char *)"read_only_not_write_only", T_BOOL, offsetof(_PySim_t<void>, read_only_not_write_only), 0,
     	(char *)"if true the IO can be only read if false the IO can be only written"},
+
 	{(char *)"COMB_UPDATE_DONE", T_INT, offsetof(_PySim_t<void>, COMB_UPDATE_DONE), 0,
 			(char *)"all non edge dependent updates done"},
 	{(char *)"BEFORE_EDGE", T_INT, offsetof(_PySim_t<void>, BEFORE_EDGE), 0,
 			(char *)"before evaluation of edge dependent event"},
     {(char *)"END_OF_STEP", T_INT, offsetof(_PySim_t<void>, END_OF_STEP), 0,
     		(char *)"all parts of circuit updated and stable"},
-    {(char *)"pending_event_list", T_OBJECT, offsetof(_PySim_t<void>, pending_event_list), 0,
+
+			{(char *)"pending_event_list", T_OBJECT, offsetof(_PySim_t<void>, pending_event_list), 0,
     		(char *)"List of triggered callbacks"},
     {nullptr}
 };
