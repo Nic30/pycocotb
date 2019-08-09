@@ -44,3 +44,5 @@ After installation verilator has to run under cygwin, but python and this librar
 * [midas](https://github.com/ucb-bar/midas)
 * [firesim](https://github.com/firesim/firesim)
 * [cocotb](https://github.com/cocotb/cocotb) - there is also WIP version of cocotb-verilator integration
+* [chisel-testers](https://github.com/freechipsproject/chisel-testers)
+
