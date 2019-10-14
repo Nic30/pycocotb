@@ -1,8 +1,8 @@
 from pycocotb.agents.base import AgentBase
 from pycocotb.constants import CLK_PERIOD
+from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.process_utils import CallbackLoop
-from pycocotb.triggers import Timer
-
+from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead
 
 DEFAULT_CLOCK = CLK_PERIOD
 
@@ -20,15 +20,15 @@ class ClockAgent(AgentBase):
     :ivar initWait: time to wait before starting oscillation
     """
 
-    def __init__(self, intf, period=DEFAULT_CLOCK):
-        super(ClockAgent, self).__init__(intf)
+    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", period=DEFAULT_CLOCK):
+        super(ClockAgent, self).__init__(sim, intf)
         self.period = period
         self.initWait = 0
-        self.monitor = CallbackLoop(self.intf, self.monitor, self.getEnable)
+        self.monitor = CallbackLoop(sim, self.intf, self.monitor, self.getEnable)
 
-    def driver(self, sim):
+    def driver(self):
         sig = self.intf
-        yield sim.waitWriteOnly()
+        yield WaitWriteOnly()
         sig.write(0)
         yield Timer(self.initWait)
 
@@ -36,28 +36,27 @@ class ClockAgent(AgentBase):
             halfPeriod = self.period // 2
 
             yield Timer(halfPeriod)
-            yield sim.waitWriteOnly()
+            yield WaitWriteOnly()
             sig.write(1)
 
             yield Timer(halfPeriod)
-            yield sim.waitWriteOnly()
+            yield WaitWriteOnly()
             sig.write(0)
 
     def getMonitors(self):
         self.last = (-1, None)
         self.data = []
+        return super(ClockAgent, self).getMonitors()
 
-        return [self.monitor]
-
-    def monitor(self, sim):
-        yield sim.waitReadOnly()
+    def monitor(self):
+        yield WaitCombRead()
         v = self.intf.read()
         try:
             v = int(v)
         except ValueError:
             v = None
 
-        now = sim.now
+        now = self.sim.now
         last = self.last
 
         _next = (now, v)

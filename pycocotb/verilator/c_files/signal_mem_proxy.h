@@ -33,7 +33,7 @@ struct SignalMemProxy_t {
 };
 
 /*
- * Initialize SignalMemProxy_t
+ * Initialise SignalMemProxy_t
  * */
 void SignalMemProxy_c_init(SignalMemProxy_t * self, bool is_read_only,
 		uint8_t * signal, size_t signal_bits, bool is_signed, const char * name,
@@ -52,3 +52,4 @@ void SignalMemProxy_cache_value(SignalMemProxy_t* self);
 bool SignalMemProxy_value_changed(SignalMemProxy_t* self);
 
 extern PyTypeObject SignalMemProxy_pytype;
+

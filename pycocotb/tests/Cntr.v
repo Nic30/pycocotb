@@ -1,8 +1,4 @@
-/*
 
-    .. hwt-schematic::
-    
-*/
 module Cntr #(parameter  DATA_WIDTH = 2
     )(input clk,
         input en,

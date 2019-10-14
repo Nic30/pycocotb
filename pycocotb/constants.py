@@ -12,5 +12,5 @@ class Time():
 
 
 # default clk period
-# value is not important, it is important that it is always the same.
+# value is not important. But is is nice to have same value over all designs.
 CLK_PERIOD = 10 * Time.ns

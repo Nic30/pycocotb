@@ -1,5 +1,7 @@
-from pycocotb.triggers import Edge
 from inspect import isgeneratorfunction
+
+from pycocotb.hdlSimulator import HdlSimulator
+from pycocotb.triggers import Edge, WaitCombRead
 
 
 class CallbackLoop(object):
@@ -8,7 +10,7 @@ class CallbackLoop(object):
     as on change callback for specified signal as soon as it is executed.
     """
 
-    def __init__(self, sig: "SimSignal", fn, shouldBeEnabledFn):
+    def __init__(self, sim: HdlSimulator, sig: "RtlSignal", fn, shouldBeEnabledFn):
         """
         :param sig: signal on which write callback should be used
         :attention: if condFn is None callback function is always executed
@@ -18,34 +20,36 @@ class CallbackLoop(object):
             or normal function
         :ivar shouldBeEnabledFn: function() -> bool, which returns True if this
             callback loop should be enabled
+        :ivar pre_init: if True the 'fn' is executed once imidiately for an intialization
+            before any callback is triggered
         """
         assert not isinstance(fn, CallbackLoop)
+        self.sim = sim
         self.fn = fn
         self.isGenerator = isgeneratorfunction(fn)
         self.shouldBeEnabledFn = shouldBeEnabledFn
         self._callbackIndex = None
         self._enable = True
+        self.sig = sig
+        self.pre_init = False
 
-        try:
-            # if sig is interface we need internal signal
-            self.sig = sig._sigInside
-        except AttributeError:
-            self.sig = sig
-
-    def setEnable(self, en, sim):
+    def setEnable(self, en):
         self._enable = en
 
-    def __call__(self, sim):
+    def __call__(self):
         """
         Process for injecting of this callback loop into simulator
         """
+        if self.pre_init:
+            yield from self.fn()
+
         while True:
             yield Edge(self.sig)
             if self._enable and self.shouldBeEnabledFn():
                 if self.isGenerator:
-                    yield from self.fn(sim)
+                    yield from self.fn()
                 else:
-                    self.fn(sim)
+                    self.fn()
 
 
 class OnRisingCallbackLoop(CallbackLoop):
@@ -54,16 +58,19 @@ class OnRisingCallbackLoop(CallbackLoop):
     as on rising callback for specified signal as soon as it is executed.
     """
 
-    def __call__(self, sim):
+    def __call__(self):
+        if self.pre_init:
+            yield from self.fn()
+
         while True:
             yield Edge(self.sig)
             if self._enable and self.shouldBeEnabledFn():
-                yield sim.waitReadOnly()
+                yield WaitCombRead()
                 if int(self.sig.read()) == 1:
                     if self.isGenerator:
-                        yield from self.fn(sim)
+                        yield from self.fn()
                     else:
-                        self.fn(sim)
+                        self.fn()
 
 
 class OnFallingCallbackLoop(CallbackLoop):
@@ -72,14 +79,17 @@ class OnFallingCallbackLoop(CallbackLoop):
     as on falling callback for specified signal as soon as it is executed.
     """
 
-    def __call__(self, sim):
+    def __call__(self):
+        if self.pre_init:
+            yield from self.fn()
+
         while True:
             yield Edge(self.sig)
             if self._enable and self.shouldBeEnabledFn():
-                yield sim.waitReadOnly()
+                yield WaitCombRead()
                 if int(self.sig.read()) == 0:
                     if self.isGenerator:
-                        yield from self.fn(sim)
+                        yield from self.fn()
                     else:
-                        self.fn(sim)
+                        self.fn()
 
