@@ -20,7 +20,8 @@ class AgentBase():
     :ivar _enable: flag to enable/disable this agent
     :ivar _debugOutput: optional stream where to print debug messages
     """
-    # because ohterwise there will be a cycle and python will not be able to deallocate this and sim/intf
+    # because ohterwise there will be a cycle and python
+    # will not be able to deallocate this and sim/intf
     __weakref__ = ["intf", "sim"]
 
     def __init__(self, sim: HdlSimulator, intf):
@@ -93,9 +94,12 @@ class SyncAgentBase(AgentWitReset):
     """
     SELECTED_EDGE_CALLBACK = OnRisingCallbackLoop
 
-    def __init__(self, sim: HdlSimulator, intf, clk: "RtlSignal", rst: Tuple["RtlSignal", bool]):
-        super(SyncAgentBase, self).__init__(sim,
-            intf, rst)
+    def __init__(self, sim: HdlSimulator,
+                 intf,
+                 clk: "RtlSignal",
+                 rst: Tuple["RtlSignal", bool]):
+        super(SyncAgentBase, self).__init__(
+            sim, intf, rst)
         self.clk = clk
 
         # run monitor, driver only on rising edge of clk
@@ -118,4 +122,3 @@ class SyncAgentBase(AgentWitReset):
     def getMonitors(self):
         self.setEnable = self.setEnable_asMonitor
         return AgentBase.getMonitors(self)
-

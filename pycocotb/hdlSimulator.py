@@ -86,7 +86,6 @@ class HdlSimulator():
     """
 
     def __init__(self, rtl_simulator):
-        super(HdlSimulator, self).__init__()
         self.rtl_simulator = rtl_simulator
         self.now = 0
         self._events = SimCalendar()

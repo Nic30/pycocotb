@@ -4,6 +4,7 @@ from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.process_utils import CallbackLoop
 from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead
 
+
 DEFAULT_CLOCK = CLK_PERIOD
 
 
