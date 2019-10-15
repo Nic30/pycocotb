@@ -33,7 +33,7 @@ class TristateAgent(AgentWitReset):
         self.selfSynchronization = True
         self.collectData = True
 
-    def monitor(self, sim):
+    def monitor(self):
         """
         The evaluate a tristate 'i' value from 'o' and 't'
         and optionaly store it.
@@ -43,7 +43,7 @@ class TristateAgent(AgentWitReset):
         # read in pre-clock-edge
         t = self.t.read()
         o = self.o.read()
-
+        sim = self.sim
         if self.pullMode is not None and sim.now > 0:
             try:
                 t = int(t)
@@ -76,7 +76,7 @@ class TristateAgent(AgentWitReset):
 
         if self.collectData and sim.now > 0:
             yield WaitCombRead()
-            if self.notReset(sim):
+            if self.notReset():
                 self.data.append(v)
 
     def getMonitors(self):

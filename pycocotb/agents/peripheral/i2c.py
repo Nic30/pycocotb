@@ -175,7 +175,7 @@ class I2cAgent(AgentWitReset):
         return
         yield
 
-    def startSender(self, sim):
+    def startSender(self):
         # SDA->0 and SCL=1
         if self.start:
             self.sda._write(0)
@@ -208,18 +208,18 @@ class I2cAgent(AgentWitReset):
             *self.scl.getDrivers()
         )
 
-    def monitor(self, sim):
+    def monitor(self):
         # now intf.sdc is rising
         yield WaitCombStable()
         # wait on all agents to update values and on
         # simulator to apply them
-        if sim.now > 0 and self.notReset(sim):
+        if self.sim.now > 0 and self.notReset():
             for _ in range(8):
                 v = self.sda.i.read()
                 self.bits.append(v)
             self.sda._write(self.ACK)
 
-    def driver(self, sim):
+    def driver(self):
         # now intf.sdc is rising
         # prepare data for next clk
         yield WaitWriteOnly()
@@ -236,12 +236,12 @@ class I2cAgent(AgentWitReset):
 
         self.sda._write(b)
 
-    def setEnable(self, en, sim):
+    def setEnable(self, en):
         """
         """
         # If there is no pending transaction no pause is required
         if not self.start and not self.stop and not self.bit_cntrl:
-            super(I2cAgent, self).setEnable(en, sim)
+            super(I2cAgent, self).setEnable(en)
         else:
             # wait until clock
             raise NotImplementedError()
