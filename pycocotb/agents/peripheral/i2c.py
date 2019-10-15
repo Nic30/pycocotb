@@ -21,11 +21,13 @@ class I2C_ADDR(Enum):
     ADDR_7b = 7
     ADDR_10b = 10
 
+
 def getBit(val, bitNo):
     """
     get specific bit from integer (little-endian)
     """
     return (val >> bitNo) & 1
+
 
 class I2cAgent(AgentWitReset):
     """
@@ -69,12 +71,11 @@ class I2cAgent(AgentWitReset):
     WRITE = 0
 
     START = "START"
-    RESTART = START # it is the same thing
+    RESTART = START
     STOP = "STOP"
 
-
     def __init__(self, sim: HdlSimulator, intf: Tuple[TRI_STATE_SIG_T, TRI_STATE_SIG_T],
-                 rst:Tuple["RtlSignal", bool],
+                 rst: Tuple["RtlSignal", bool],
                  MODE=I2C_MODE.STANDARD,
                  ADDR_BITS=I2C_ADDR.ADDR_7b):
         """
@@ -163,7 +164,6 @@ class I2cAgent(AgentWitReset):
             addrHigh = self.data_rx.pop()
             addrHigh = int(addrHigh)
             addr = (addr << 8) | addrHigh
-
 
     def startListener(self):
         # SDA->0 and SCL=1

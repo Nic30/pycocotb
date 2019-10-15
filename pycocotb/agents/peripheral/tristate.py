@@ -9,16 +9,21 @@ from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead, Edge
 
 class TristateAgent(AgentWitReset):
     """
-    :ivar selfSynchronization: if True the agent reads/write with a perior of DEFAULT_CLOCK
+    :ivar selfSynchronization: if True the agent reads/write
+        with a perior of DEFAULT_CLOCK
     :ivar pullMode: specifies how the interface should behave if none drives it
-                    can be (1: pull-up, 0: pull-down, None: disconnected)
+        can be (1: pull-up, 0: pull-down, None: disconnected)
     """
 
-    def __init__(self, sim: HdlSimulator, intf: Tuple["RtlSignal", "RtlSignal", "RtlSignal"],
+    def __init__(self,
+                 sim: HdlSimulator,
+                 intf: Tuple["RtlSignal", "RtlSignal", "RtlSignal"],
                  rst: Tuple["RtlSignal", bool]):
         """
-        :param intf: tuple (i signal, o signal, t signal) as present in tristate interface
-        :note: t signal controls if the output should be connected, if 't'=0 the 'o' does not have effect
+        :param intf: tuple (i signal, o signal, t signal)
+            as present in tristate interface
+        :note: t signal controls if the output should be connected,
+            if 't'=0 the 'o' does not have effect
         """
         super(TristateAgent, self).__init__(sim, intf, rst)
         self.i, self.o, self.t = intf
@@ -44,16 +49,16 @@ class TristateAgent(AgentWitReset):
                 t = int(t)
             except ValueError:
                 raise AssertionError(
-                sim.now, self.t, "This mode, this value => ioblock would burn")
+                    sim.now, self.t, "This mode, this value => ioblock would burn")
             try:
                 o = int(o)
             except ValueError:
                 raise AssertionError(
-                sim.now, self.o, "This mode, this value => ioblock would burn")
+                    sim.now, self.o, "This mode, this value => ioblock would burn")
 
             if self.pullMode != o:
                 raise AssertionError(
-                sim.now, self.o, "This mode, this value => ioblock would burn")
+                    sim.now, self.o, "This mode, this value => ioblock would burn")
 
         if t:
             v = o
