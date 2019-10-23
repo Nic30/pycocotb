@@ -39,7 +39,7 @@ PyMemberDef PySim_members[8] = {
     {(char *)"END_OF_STEP", T_INT, offsetof(_PySim_t<void>, END_OF_STEP), 0,
     		(char *)"all parts of circuit updated and stable"},
 
-			{(char *)"pending_event_list", T_OBJECT, offsetof(_PySim_t<void>, pending_event_list), 0,
+	{(char *)"pending_event_list", T_OBJECT, offsetof(_PySim_t<void>, pending_event_list), 0,
     		(char *)"List of triggered callbacks"},
     {nullptr}
 };
