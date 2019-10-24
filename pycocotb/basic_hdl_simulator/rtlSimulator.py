@@ -41,8 +41,9 @@ class BasicRtlSimulator():
         self.state = BasicRtlSimulatorSt.PRE_SET
         self._proc_outputs = {}
         self._updates_to_apply = []
-        self._comb_procs_to_run = SortedSet()
-        self._seq_procs_to_run = SortedSet()
+        self.signals_checked_for_change = set()
+        self._comb_procs_to_run = SortedSet(key=id)
+        self._seq_procs_to_run = SortedSet(key=id)
         self.config = BasicRtlSimConfig()
 
     def bound_model(self, model: BasicRtlSimModel):
@@ -65,7 +66,7 @@ class BasicRtlSimulator():
         for sig_name in model._interfaces:
             s = getattr(model.io, sig_name)
             if s.def_val is not None:
-                s.simUpdateVal(self, mkUpdater(s.def_val, False))
+                s._apply_update(mkUpdater(s.def_val, False))
 
         for u in model._units:
             self._init_model_signals(u)

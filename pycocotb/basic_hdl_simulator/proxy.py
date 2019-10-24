@@ -23,8 +23,7 @@ class BasicRtlSimProxy():
                  "def_val", "val", "val_next",
                  "simRisingSensProcs", "simFallingSensProcs", "simSensProcs"]
 
-    def __init__(self, sim: "BasicRtlSimulator", parent, name, dtype,
-                 def_val=None):
+    def __init__(self, sim: "BasicRtlSimulator", parent, name, dtype, def_val):
         self.callbacks = []
         self.sim = sim
         self.parent = parent
@@ -37,9 +36,9 @@ class BasicRtlSimProxy():
         self._dtype = dtype  # type notation for python
         self._origin = None  # signal object which this proxy substitutes
         self._ag = None  # simulation agent which drive or monitor this signal
-        self.simRisingSensProcs = SortedSet()
-        self.simFallingSensProcs = SortedSet()
-        self.simSensProcs = SortedSet()
+        self.simRisingSensProcs = SortedSet(key=id)
+        self.simFallingSensProcs = SortedSet(key=id)
+        self.simSensProcs = SortedSet(key=id)
 
     def read(self):
         assert self.sim.read_only_not_write_only
