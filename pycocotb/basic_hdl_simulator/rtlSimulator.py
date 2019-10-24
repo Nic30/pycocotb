@@ -1,0 +1,215 @@
+from enum import Enum
+from sortedcontainers.sortedset import SortedSet
+from typing import Tuple, Callable, Generator, Optional
+
+from pycocotb.basic_hdl_simulator.basicSimIo import BasicSimIo
+from pycocotb.basic_hdl_simulator.simModel import BasicSimModel
+from pycocotb.basic_hdl_simulator.sim_utils import mkArrayUpdater, mkUpdater
+from pycocotb.basic_hdl_simulator.simProxy import BasicSimProxy
+from pycocotb.basic_hdl_simulator.simConfig import BasicRtlSimConfig
+
+
+class BasicRtlSimulatorSt(Enum):
+    PRE_SET = 0
+    EVAL_COMB = 1  # eval circuit without update of memory elements
+    EVAL_SEQ = 2  # update whole circuit
+
+
+def isEvDependentOn(sig: BasicSimProxy, process) -> bool:
+    """
+    Check if hdl process has event depenency on signal
+    """
+    if sig is None:
+        return False
+
+    return process in sig.simFallingSensProcs\
+        or process in sig.simRisingSensProcs
+
+
+class BasicRtlSimulator():
+    COMB_UPDATE_DONE = 0  # all non edge dependent updates done"},
+    BEFORE_EDGE = 1  # before evaluation of edge dependent event"},
+    END_OF_STEP = 2  # all parts of circuit updated and stable
+
+    def __init__(self):
+        self.io: BasicSimIo = None  # container of signals in simulation
+        self.model: BasicSimModel = None
+        self.time = 0  # actual simulation time
+        # if true the IO can be only read if false the IO can be only written
+        self.read_only_not_write_only = False
+        self.pending_event_list = []  # List of triggered callbacks
+        self.state = BasicRtlSimulatorSt.PRE_SET
+        self._proc_outputs = {}
+        self._updates_to_apply = []
+        self._comb_procs_to_run = SortedSet()
+        self._seq_procs_to_run = SortedSet()
+        self.config = BasicRtlSimConfig()
+
+    def bound_model(self, model: BasicSimModel):
+        self.model = model
+        self.io = model.io
+        self._bound_model_procs(model)
+        self._init_model_signals(model)
+
+    def _bound_model_procs(self, m: BasicSimModel):
+        for p, output_names in m._outputs.items():
+            assert p not in self._proc_outputs
+            self._proc_outputs[p] = tuple(getattr(m.io, name) for name in output_names)
+
+    def _init_model_signals(self, model: BasicSimModel) -> None:
+        """
+        * Inject default values to simulation
+        * Instantiate IOs for every process
+        """
+        # set initial value to all signals and propagate it
+        for sig_name in model._interfaces:
+            s = getattr(model.io, sig_name)
+            if s.def_val is not None:
+                s.simUpdateVal(self, mkUpdater(s.def_val, False))
+
+        for u in model._units:
+            self._init_model_signals(u)
+
+        for p in model._processes:
+            self._add_hdl_proc_to_run(None, p)
+
+    def _add_hdl_proc_to_run(self, trigger: Optional[BasicSimProxy], proc) -> None:
+        """
+        Add hdl process to execution queue
+        :param trigger: instance of SimSignal
+        :param proc: python generator function representing HDL process
+        """
+        # first process in time has to plan executing of apply values on the
+        # end of this time
+        if isEvDependentOn(trigger, proc):
+            if self.now == 0:
+                return  # pass event dependent on startup
+            self._seq_procs_to_run.add(proc)
+        else:
+            self._comb_procs_to_run.add(proc)
+
+    def _mkUpdater(self, newValue)\
+            ->Tuple[Callable[["Value"], bool], bool]:
+        """
+        This functions resolves write conflicts for signal
+        """
+        invalidate = False
+        if len(newValue) == 3:
+            # update for item in array
+            val, indexes, isEvDependent = newValue
+            return (mkArrayUpdater(val, indexes, invalidate), isEvDependent)
+        else:
+            # update for simple signal
+            val, isEvDependent = newValue
+            return (mkUpdater(val, invalidate), isEvDependent)
+
+    def _run_comb_processes(self) -> None:
+        """
+        Delta step for combinational processes
+        """
+        while self._comb_procs_to_run:
+            for proc in self._comb_procs_to_run:
+                io = self._proc_outputs[proc]
+                proc()
+                for sig in io:
+                    if sig.val_next is not None:
+                        res = self._mkUpdater(sig.val_next)
+                        # prepare update
+                        updater, is_event_dependent = res
+                        self._updates_to_apply.append(
+                            (sig, updater, is_event_dependent, proc)
+                        )
+                        sig.val_next = None
+                        # else value is latched
+            self._comb_procs_to_run.clear()
+
+            va = self._updates_to_apply
+            # log if there are items to log
+            lav = self.config.logApplyingValues
+            if va and lav:
+                lav(self, va)
+            self._updates_to_apply = []
+
+            # apply values to signals, values can overwrite each other
+            # but each signal should be driven by only one process and
+            # it should resolve value collision
+            addSp = self._seq_procs_to_run.add
+            for s, vUpdater, isEventDependent, comesFrom in va:
+                if isEventDependent:
+                    # now=0 and this was process initialization or async reg
+                    addSp(comesFrom)
+                else:
+                    # regular combinational process
+                    s._apply_update(vUpdater)
+
+    def _run_seq_processes(self) -> Generator[None, None, None]:
+        """
+        Delta step for event dependent processes
+        """
+        updated = []
+        for proc in self._seq_procs_to_run:
+            io = self._proc_outputs[proc]
+            proc()
+            updated.extend(io)
+
+        self._seq_procs_to_run = SortedSet()
+
+        for sig in updated:
+            if sig.val_next is not None:
+                v = self._mkUpdater(sig.val_next)
+                updater, _ = v
+                sig.simUpdateVal(self, updater)
+                sig.val_next = None
+
+    def eval(self):
+        "single simulation step"
+        st = self.state
+        if st == BasicRtlSimulatorSt.PRE_SET:
+            # apply all writes from outside word
+            self.state = BasicRtlSimulatorSt.EVAL_COMB
+            self.read_only_not_write_only = True
+            self._run_comb_processes()
+            return self.COMB_UPDATE_DONE
+        elif st == BasicRtlSimulatorSt.EVAL_COMB:
+            # evaluate all combinational paths
+            # without updating any memory element
+            self.state = BasicRtlSimulatorSt.EVAL_SEQ
+            self._run_comb_processes()
+            return self.BEFORE_EDGE
+        elif st == BasicRtlSimulatorSt.EVAL_SEQ:
+            # update rest of the circuit including memories
+            self._run_comb_processes()
+            self._run_seq_processes()
+            self._run_comb_processes()
+            self.state = BasicRtlSimulatorSt.PRE_SET
+            return self.END_OF_STEP
+        else:
+            raise AssertionError("Invalid state", self.state)
+
+    def reset_eval(self):
+        """
+        reset evaluation in COMB_UPDATE_DONE state
+        so the comb. circuits can be evaluated again
+        """
+        assert self.state == BasicRtlSimulatorSt.EVAL_COMB, (self.state, self.time)
+        self.state = BasicRtlSimulatorSt.PRE_SET
+        self.read_only_not_write_only = False
+
+    def set_trace_file(self, file_name, trace_depth):
+        """
+        set file where data from signals should be stored
+
+        :param file_name: name of file where trace should be stored (path of vcd file f.e.)
+        :param trace_depth: number of hyerarchy levels which should be trraced (-1 = all)
+        """
+        raise NotImplementedError()
+
+    def set_write_only(self):
+        """
+        set simulation to write only state, should be called
+        before entering to new evaluation step"""
+        self.read_only_not_write_only = False
+        assert self.state == BasicRtlSimulatorSt.PRE_SET, self.state
+
+    def finalize(self):
+        "flush output and clean all pending actions"
