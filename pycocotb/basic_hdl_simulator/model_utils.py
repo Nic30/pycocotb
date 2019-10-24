@@ -1,12 +1,12 @@
 from typing import List, Union, Tuple
 
-from pycocotb.basic_hdl_simulator.simProxy import BasicSimProxy
+from pycocotb.basic_hdl_simulator.proxy import BasicRtlSimProxy
 
 
 def sensitivity(
         proc_fn,
-        *sensitiveTo: List[Union[BasicSimProxy,
-                                Tuple[Tuple[bool, bool], BasicSimProxy]]]):
+        *sensitiveTo: List[Union[BasicRtlSimProxy,
+                                Tuple[Tuple[bool, bool], BasicRtlSimProxy]]]):
     """
     register sensitivity for process
     """

@@ -2,11 +2,11 @@ from enum import Enum
 from sortedcontainers.sortedset import SortedSet
 from typing import Tuple, Callable, Generator, Optional
 
-from pycocotb.basic_hdl_simulator.basicSimIo import BasicSimIo
-from pycocotb.basic_hdl_simulator.simModel import BasicSimModel
+from pycocotb.basic_hdl_simulator.io import BasicRtlSimIo
+from pycocotb.basic_hdl_simulator.model import BasicRtlSimModel
 from pycocotb.basic_hdl_simulator.sim_utils import mkArrayUpdater, mkUpdater
-from pycocotb.basic_hdl_simulator.simProxy import BasicSimProxy
-from pycocotb.basic_hdl_simulator.simConfig import BasicRtlSimConfig
+from pycocotb.basic_hdl_simulator.proxy import BasicRtlSimProxy
+from pycocotb.basic_hdl_simulator.config import BasicRtlSimConfig
 
 
 class BasicRtlSimulatorSt(Enum):
@@ -15,7 +15,7 @@ class BasicRtlSimulatorSt(Enum):
     EVAL_SEQ = 2  # update whole circuit
 
 
-def isEvDependentOn(sig: BasicSimProxy, process) -> bool:
+def isEvDependentOn(sig: BasicRtlSimProxy, process) -> bool:
     """
     Check if hdl process has event depenency on signal
     """
@@ -32,8 +32,8 @@ class BasicRtlSimulator():
     END_OF_STEP = 2  # all parts of circuit updated and stable
 
     def __init__(self):
-        self.io: BasicSimIo = None  # container of signals in simulation
-        self.model: BasicSimModel = None
+        self.io: BasicRtlSimIo = None  # container of signals in simulation
+        self.model: BasicRtlSimModel = None
         self.time = 0  # actual simulation time
         # if true the IO can be only read if false the IO can be only written
         self.read_only_not_write_only = False
@@ -45,18 +45,18 @@ class BasicRtlSimulator():
         self._seq_procs_to_run = SortedSet()
         self.config = BasicRtlSimConfig()
 
-    def bound_model(self, model: BasicSimModel):
+    def bound_model(self, model: BasicRtlSimModel):
         self.model = model
         self.io = model.io
         self._bound_model_procs(model)
         self._init_model_signals(model)
 
-    def _bound_model_procs(self, m: BasicSimModel):
+    def _bound_model_procs(self, m: BasicRtlSimModel):
         for p, output_names in m._outputs.items():
             assert p not in self._proc_outputs
             self._proc_outputs[p] = tuple(getattr(m.io, name) for name in output_names)
 
-    def _init_model_signals(self, model: BasicSimModel) -> None:
+    def _init_model_signals(self, model: BasicRtlSimModel) -> None:
         """
         * Inject default values to simulation
         * Instantiate IOs for every process
@@ -73,7 +73,7 @@ class BasicRtlSimulator():
         for p in model._processes:
             self._add_hdl_proc_to_run(None, p)
 
-    def _add_hdl_proc_to_run(self, trigger: Optional[BasicSimProxy], proc) -> None:
+    def _add_hdl_proc_to_run(self, trigger: Optional[BasicRtlSimProxy], proc) -> None:
         """
         Add hdl process to execution queue
         :param trigger: instance of SimSignal

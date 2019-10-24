@@ -1,6 +1,6 @@
 
-class BasicSimIo():
+class BasicRtlSimIo():
     """
-    Container of BasicSimProxy objects
+    Container of BasicRtlSimProxy objects
     """
     pass

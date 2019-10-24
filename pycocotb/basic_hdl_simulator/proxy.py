@@ -2,7 +2,7 @@ from sortedcontainers.sortedset import SortedSet
 from pycocotb.basic_hdl_simulator.sim_utils import valueHasChanged
 
 
-class BasicSimProxy():
+class BasicRtlSimProxy():
     """
     Signal proxy which manages the access to a memory in simulation
 
