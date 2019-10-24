@@ -1,5 +1,5 @@
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.extension import Library
 import sys
 
@@ -35,12 +35,16 @@ if "--verilator" in sys.argv:
 setup(
     name='pycocotb',
     version='0.1',
-    author='',
+    author_email='michal.o.socials@gmail.com',
     install_requires=[
         "jinja2",  # template engine
         "sortedcontainers",  # for calendar queue in simulator
     ],
-    author_email='michal.o.socials@gmail.com',
+    license='MIT',
+    packages=find_packages(),
+    package_data={'pycocotb.verilator': ['*.h', '*.cpp', '*.template']},
+    include_package_data=True,
+    zip_safe=False,
     ext_modules=ext_modules,
     test_suite="pycocotb.tests.all.suite"
 )
