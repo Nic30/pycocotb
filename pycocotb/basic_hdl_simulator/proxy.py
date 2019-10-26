@@ -1,5 +1,6 @@
 from sortedcontainers.sortedset import SortedSet
 from pycocotb.basic_hdl_simulator.sim_utils import valueHasChanged
+from pyMathBitPrecise.bits3t import Bits3t
 
 
 class BasicRtlSimProxy():
@@ -22,6 +23,7 @@ class BasicRtlSimProxy():
                  "_dtype", "_origin", "_ag",
                  "def_val", "val", "val_next",
                  "simRisingSensProcs", "simFallingSensProcs", "simSensProcs"]
+    BIT_t = Bits3t(1, False)
 
     def __init__(self, sim: "BasicRtlSimulator", parent, name, dtype, def_val):
         self.callbacks = []
@@ -49,6 +51,7 @@ class BasicRtlSimProxy():
         val = self._dtype.from_py(val)
         if valueHasChanged(self.val, val):
             self.val = val
+            self.sim._updated_in_this_step.add(self)
             self._propagate_changes()
 
     def wait(self, cb):
@@ -83,6 +86,7 @@ class BasicRtlSimProxy():
         # run write callbacks we have to create new list to allow
         # registering of new call backs in callbacks
         self.sim.pending_event_list.extend(self.callbacks)
+        self.callbacks.clear()
 
         if self.simRisingSensProcs:
             if v.val or not v.vld_mask:
@@ -97,6 +101,18 @@ class BasicRtlSimProxy():
                     log(sim, self, self.simFallingSensProcs)
                 for p in self.simFallingSensProcs:
                     sim._add_hdl_proc_to_run(self, p)
+
+    def _onRisingEdge(self):
+        v = self.val
+        is_rising = self in self.sim._updated_in_this_step\
+            and (v.val or not v.vld_mask)
+        return self.BIT_t.from_py(int(is_rising), int(bool(v.vld_mask)))
+
+    def _onFallingEdge(self):
+        v = self.val
+        is_falling = self in self.sim._updated_in_this_step\
+            and (not v.val or not v.vld_mask)
+        return self.BIT_t.from_py(int(is_falling), int(bool(v.vld_mask)))
 
     def __repr__(self):
         return "<%s %r.%s %r %r>" % (self.__class__.__name__, self.parent,
