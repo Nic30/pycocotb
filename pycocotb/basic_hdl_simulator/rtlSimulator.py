@@ -45,6 +45,7 @@ class BasicRtlSimulator():
         self._comb_procs_to_run = SortedSet(key=id)
         self._seq_procs_to_run = SortedSet(key=id)
         self.config = BasicRtlSimConfig()
+        self._updated_in_this_step = set()
 
     def bound_model(self, model: BasicRtlSimModel):
         self.model = model
@@ -56,6 +57,8 @@ class BasicRtlSimulator():
         for p, output_names in m._outputs.items():
             assert p not in self._proc_outputs
             self._proc_outputs[p] = tuple(getattr(m.io, name) for name in output_names)
+        for u in m._units:
+            self._bound_model_procs(u)
 
     def _init_model_signals(self, model: BasicRtlSimModel) -> None:
         """
@@ -83,7 +86,7 @@ class BasicRtlSimulator():
         # first process in time has to plan executing of apply values on the
         # end of this time
         if isEvDependentOn(trigger, proc):
-            if self.now == 0:
+            if self.time == 0:
                 return  # pass event dependent on startup
             self._seq_procs_to_run.add(proc)
         else:
@@ -153,13 +156,13 @@ class BasicRtlSimulator():
             proc()
             updated.extend(io)
 
-        self._seq_procs_to_run = SortedSet()
+        self._seq_procs_to_run = SortedSet(key=id)
 
         for sig in updated:
             if sig.val_next is not None:
                 v = self._mkUpdater(sig.val_next)
                 updater, _ = v
-                sig.simUpdateVal(self, updater)
+                sig._apply_update(updater)
                 sig.val_next = None
 
     def eval(self):
@@ -183,6 +186,7 @@ class BasicRtlSimulator():
             self._run_seq_processes()
             self._run_comb_processes()
             self.state = BasicRtlSimulatorSt.PRE_SET
+            self._updated_in_this_step.clear()
             return self.END_OF_STEP
         else:
             raise AssertionError("Invalid state", self.state)
