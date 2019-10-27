@@ -92,7 +92,7 @@ class BasicRtlSimulator():
             self._comb_procs_to_run.add(proc)
 
     def _mkUpdater(self, newValue)\
-            ->Tuple[Callable[["Value"], bool], bool]:
+            -> Tuple[Callable[["Value"], bool], bool]:
         """
         This functions resolves write conflicts for signal
         """
