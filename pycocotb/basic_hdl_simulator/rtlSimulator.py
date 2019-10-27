@@ -2,11 +2,11 @@ from enum import Enum
 from sortedcontainers.sortedset import SortedSet
 from typing import Tuple, Callable, Generator, Optional
 
+from pycocotb.basic_hdl_simulator.config import BasicRtlSimConfig
 from pycocotb.basic_hdl_simulator.io import BasicRtlSimIo
 from pycocotb.basic_hdl_simulator.model import BasicRtlSimModel
-from pycocotb.basic_hdl_simulator.sim_utils import mkArrayUpdater, mkUpdater
 from pycocotb.basic_hdl_simulator.proxy import BasicRtlSimProxy
-from pycocotb.basic_hdl_simulator.config import BasicRtlSimConfig
+from pycocotb.basic_hdl_simulator.sim_utils import mkArrayUpdater, mkUpdater
 
 
 class BasicRtlSimulatorSt(Enum):
@@ -54,9 +54,9 @@ class BasicRtlSimulator():
         self._init_model_signals(model)
 
     def _bound_model_procs(self, m: BasicRtlSimModel):
-        for p, output_names in m._outputs.items():
+        for p, outputs in m._outputs.items():
             assert p not in self._proc_outputs
-            self._proc_outputs[p] = tuple(getattr(m.io, name) for name in output_names)
+            self._proc_outputs[p] = tuple(outputs)
         for u in m._units:
             self._bound_model_procs(u)
 
@@ -66,8 +66,7 @@ class BasicRtlSimulator():
         * Instantiate IOs for every process
         """
         # set initial value to all signals and propagate it
-        for sig_name in model._interfaces:
-            s = getattr(model.io, sig_name)
+        for s in model._interfaces:
             if s.def_val is not None:
                 s._apply_update(mkUpdater(s.def_val, False))
 

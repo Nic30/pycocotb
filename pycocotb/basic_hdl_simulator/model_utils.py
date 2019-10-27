@@ -6,7 +6,7 @@ from pycocotb.basic_hdl_simulator.proxy import BasicRtlSimProxy
 def sensitivity(
         proc_fn,
         *sensitiveTo: List[Union[BasicRtlSimProxy,
-                                Tuple[Tuple[bool, bool], BasicRtlSimProxy]]]):
+                                 Tuple[Tuple[bool, bool], BasicRtlSimProxy]]]):
     """
     register sensitivity for process
     """
@@ -22,13 +22,13 @@ def sensitivity(
             s.simSensProcs.add(proc_fn)
 
 
-def connectSimPort(simUnit, subSimUnit, srcName, dstName, is_output):
+def connectSimPort(simUnit, subSimUnit, srcName, dstName, dir_to_subcomponent):
     """
     Connect ports of simulation models by name
     """
-    if is_output:
-        newPort = getattr(simUnit.io, dstName)
-        setattr(subSimUnit.io, srcName, newPort)
-    else:
+    if dir_to_subcomponent:
         newPort = getattr(simUnit.io, srcName)
         setattr(subSimUnit.io, dstName, newPort)
+    else:
+        newPort = getattr(simUnit.io, dstName)
+        setattr(subSimUnit.io, srcName, newPort)

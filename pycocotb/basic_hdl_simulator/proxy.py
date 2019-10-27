@@ -1,8 +1,9 @@
-from sortedcontainers.sortedset import SortedSet
-from pycocotb.basic_hdl_simulator.sim_utils import valueHasChanged
-from pyMathBitPrecise.bits3t import Bits3t
 from copy import copy
+from sortedcontainers.sortedset import SortedSet
+
 from pyMathBitPrecise.array3t import Array3t
+from pyMathBitPrecise.bits3t import Bits3t
+from pycocotb.basic_hdl_simulator.sim_utils import valueHasChanged
 
 
 class BasicRtlSimProxy():
@@ -53,7 +54,6 @@ class BasicRtlSimProxy():
         val = self._dtype.from_py(val)
         if valueHasChanged(self.val, val):
             self.val = val
-            self.sim._updated_in_this_step.add(self)
             self._propagate_changes()
 
     def wait(self, cb):
@@ -73,6 +73,7 @@ class BasicRtlSimProxy():
     def _propagate_changes(self):
         v = self.val
         sim = self.sim
+        sim._updated_in_this_step.add(self)
         log = sim.config.logChange
         if log:
             log(sim.time, self, v)
@@ -153,4 +154,3 @@ class BasicRtlSimProxyArrItem():
             return self._dtype.from_py(None)
 
         return copy(v)
- 
