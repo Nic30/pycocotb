@@ -2,6 +2,7 @@ from sortedcontainers.sortedset import SortedSet
 from pycocotb.basic_hdl_simulator.sim_utils import valueHasChanged
 from pyMathBitPrecise.bits3t import Bits3t
 from copy import copy
+from pyMathBitPrecise.array3t import Array3t
 
 
 class BasicRtlSimProxy():
@@ -115,6 +116,41 @@ class BasicRtlSimProxy():
             and (not v.val or not v.vld_mask)
         return self.BIT_t.from_py(int(is_falling), int(bool(v.vld_mask)))
 
+    def __getitem__(self, index):
+        if not isinstance(self._dtype, Array3t):
+            raise TypeError("%r is not iterable because it uses type %r"
+                            % (self, self._dtype))
+        elif index < 0 or index >= self._dtype.size:
+            raise IndexError()
+        else:
+            return BasicRtlSimProxyArrItem(self, index)
+
+    def __len__(self):
+        if not isinstance(self._dtype, Array3t):
+            raise TypeError("%r is not iterable because it uses type %r"
+                            % (self, self._dtype))
+        else:
+            return self._dtype.size
+
     def __repr__(self):
         return "<%s %r.%s %r %r>" % (self.__class__.__name__, self.parent,
                                      self.name, self.val, self.val_next)
+
+
+class BasicRtlSimProxyArrItem():
+
+    def __init__(self, parent_proxy, item_index):
+        self.parent_proxy = parent_proxy
+        self.item_index = item_index
+        self.sim = parent_proxy.sim
+        self.parent = parent_proxy.parent
+        self._dtype = parent_proxy._dtype.element_t
+
+    def read(self):
+        assert self.sim.read_only_not_write_only
+        v = self.val.get(self.item_index, None)
+        if v is None:
+            return self._dtype.from_py(None)
+
+        return copy(v)
+ 
