@@ -1,6 +1,7 @@
 from sortedcontainers.sortedset import SortedSet
 from pycocotb.basic_hdl_simulator.sim_utils import valueHasChanged
 from pyMathBitPrecise.bits3t import Bits3t
+from copy import copy
 
 
 class BasicRtlSimProxy():
@@ -44,7 +45,7 @@ class BasicRtlSimProxy():
 
     def read(self):
         assert self.sim.read_only_not_write_only
-        return self.val
+        return copy(self.val)
 
     def write(self, val):
         assert not self.sim.read_only_not_write_only
