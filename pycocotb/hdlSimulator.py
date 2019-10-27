@@ -67,10 +67,11 @@ Pitfalls of delta-step based HDL simulators
               values can be undefined and read only access is required.
 """
 
+from inspect import isgenerator
+
+from pycocotb.simCalendar import SimTimeSlot, SimCalendar
 from pycocotb.triggers import Event, raise_StopSimulation, \
     StopSimumulation, Action, DONE
-from inspect import isgenerator
-from pycocotb.simCalendar import SimTimeSlot, SimCalendar
 
 
 # similar to https://github.com/potentialventures/cocotb/blob/master/cocotb/scheduler.py
