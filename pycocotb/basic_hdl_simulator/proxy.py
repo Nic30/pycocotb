@@ -148,7 +148,7 @@ class BasicRtlSimProxyArrItem():
 
     def read(self):
         assert self.sim.read_only_not_write_only
-        v = self.val.get(self.item_index, None)
+        v = self.parent_proxy.val.val.get(self.item_index, None)
         if v is None:
             return self._dtype.from_py(None)
 
