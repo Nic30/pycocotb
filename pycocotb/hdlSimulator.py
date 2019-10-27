@@ -249,6 +249,8 @@ class HdlSimulator():
             pass
         finally:
             rtl_sim.finalize()
+        # to allow tesbenches to peek in to DUT after sim ended
+        rtl_sim.read_only_not_write_only = True
 
     def _schedule_proc_now(self, ev):
         assert isinstance(ev, (Action, Event)) or isgenerator(ev), ev
