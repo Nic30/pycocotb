@@ -65,7 +65,7 @@ class BasicRtlSimProxy():
         Method called by simulator to update new value for this object
         """
         dirty_flag, new_val = valUpdater(self.val)
-
+        assert new_val._dtype == self._dtype, (self, self.sim.time, new_val._dtype, self._dtype)
         if dirty_flag:
             self.val = new_val
             self._propagate_changes()
@@ -122,7 +122,7 @@ class BasicRtlSimProxy():
             raise TypeError("%r is not iterable because it uses type %r"
                             % (self, self._dtype))
         elif index < 0 or index >= self._dtype.size:
-            raise IndexError()
+            raise IndexError(self._dtype.size, index)
         else:
             return BasicRtlSimProxyArrItem(self, index)
 
