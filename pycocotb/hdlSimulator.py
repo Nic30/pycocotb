@@ -228,9 +228,6 @@ class HdlSimulator():
                 _run_event_list(time_slot.comb_stable)
                 time_slot.comb_stable = DONE
 
-                _run_event_list(time_slot.mem_stable)
-                time_slot.mem_stable = DONE
-
                 while True:
                     ret = rtl_sim.eval()
                     if rtl_sim.pending_event_list:
@@ -241,6 +238,8 @@ class HdlSimulator():
                         self._eval_rtl_events()
                     if ret == END:
                         break
+                _run_event_list(time_slot.mem_stable)
+                time_slot.mem_stable = DONE
 
                 _run_event_list(time_slot.all_stable)
                 time_slot.all_stable = DONE
