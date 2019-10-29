@@ -97,15 +97,17 @@ class SyncAgentBase(AgentWitReset):
     def __init__(self, sim: HdlSimulator,
                  intf,
                  clk: "RtlSignal",
-                 rst: Tuple["RtlSignal", bool]):
+                 rst: Tuple["RtlSignal", bool],
+                  wrap_monitor_and_driver_in_edge_callback=True):
         super(SyncAgentBase, self).__init__(
             sim, intf, rst)
         self.clk = clk
 
-        # run monitor, driver only on rising edge of clk
-        c = self.SELECTED_EDGE_CALLBACK
-        self.monitor = c(sim, self.clk, self.monitor, self.getEnable)
-        self.driver = c(sim, self.clk, self.driver, self.getEnable)
+        if wrap_monitor_and_driver_in_edge_callback:
+            # run monitor, driver only on rising edge of clk
+            c = self.SELECTED_EDGE_CALLBACK
+            self.monitor = c(sim, self.clk, self.monitor, self.getEnable)
+            self.driver = c(sim, self.clk, self.driver, self.getEnable)
 
     def setEnable_asDriver(self, en: bool):
         self._enabled = en
@@ -122,3 +124,4 @@ class SyncAgentBase(AgentWitReset):
     def getMonitors(self):
         self.setEnable = self.setEnable_asMonitor
         return AgentBase.getMonitors(self)
+
