@@ -151,9 +151,9 @@ class WaitTimeslotEnd(Action):
 
     def applyProcess(self, sim, process):
         t = sim._current_time_slot
-        ev_list = t.read_only
+        ev_list = t.timeslot_end
         if ev_list is None:
-            ev_list = t.read_only = []
+            ev_list = t.timeslot_end = []
         elif ev_list == DONE:
             ev_list = sim._current_event_list
         ev_list.append(process)
