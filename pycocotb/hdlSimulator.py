@@ -231,10 +231,10 @@ class HdlSimulator():
                 while True:
                     ret = rtl_sim.eval()
                     if rtl_sim.pending_event_list:
-                        if time_slot.comb_read is None:
-                            self._current_event_list = time_slot.all_stable = []
+                        if time_slot.mem_stable is None:
+                            self._current_event_list = time_slot.mem_stable = []
                         else:
-                            self._current_event_list = time_slot.all_stable
+                            self._current_event_list = time_slot.mem_stable
                         self._eval_rtl_events()
                     if ret == END:
                         break
