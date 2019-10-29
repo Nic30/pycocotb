@@ -33,14 +33,18 @@ class HandshakedAgent(SyncAgentBase):
     def setEnable_asDriver(self, en):
         super(HandshakedAgent, self).setEnable_asDriver(en)
         if not en:
-            self.setValid(0)
+            self.set_valid(0)
             self._lastVld = 0
+        else:
+            self.set_valid(0)
 
     def setEnable_asMonitor(self, en):
         super(HandshakedAgent, self).setEnable_asMonitor(en)
         if not en:
             self.set_ready(0)
             self._lastRd = 0
+        else:
+            self.set_ready(0)
 
     def get_ready(self) -> bool:
         """
@@ -76,8 +80,13 @@ class HandshakedAgent(SyncAgentBase):
         start = self.sim.now
         # print("monitor %d %s" % (start, ",".join([i.name for i in self.intf])))
         yield WaitCombRead()
+        if not self._enabled:
+            return        
+
         if self.notReset():
             yield WaitWriteOnly()
+            if not self._enabled:
+                return
             # update rd signal only if required
             if self._lastRd is not 1:
                 self.set_ready(1)
@@ -92,12 +101,16 @@ class HandshakedAgent(SyncAgentBase):
                 if onMonitorReady is not None:
                     onMonitorReady()
             else:
-                yield WaitCombRead()
+                yield WaitCombRead() 
                 assert int(self.get_ready()) == self._lastRd, (
                     "Something changed the value of ready withou notifying of this agent"
                     " which is responsible for this",
                     self.sim.now, self.get_ready(), self._lastRd)
-
+                if not self._enabled:
+                    return
+           
+            if not self._enabled:
+                return
             # wait for response of master
             yield WaitCombStable()
             if not self._enabled:
@@ -150,8 +163,11 @@ class HandshakedAgent(SyncAgentBase):
         start = self.sim.now
         # print("driver %d %s" % (start, ",".join([i.name for i in self.intf])))
         yield WaitWriteOnly()
+        if not self._enabled:
+            return
         # pop new data if there are not any pending
         if self.actualData is NOP and self.data:
+            print("pop0", self.sim.now, self.data)
             self.actualData = self.data.popleft()
 
         doSend = self.actualData is not NOP
@@ -162,10 +178,13 @@ class HandshakedAgent(SyncAgentBase):
                 data = self.actualData
             else:
                 data = None
+
             self.set_data(data)
             self._lastWritten = self.actualData
 
         yield WaitCombRead()
+        if not self._enabled:
+            return
         en = self.notReset()
         vld = int(en and doSend)
         if self._lastVld is not vld:
@@ -207,6 +226,7 @@ class HandshakedAgent(SyncAgentBase):
             a = self.actualData
             # pop new data, because actual was read by slave
             if self.data:
+                print("pop0", self.sim.now, self.data)
                 self.actualData = self.data.popleft()
             else:
                 self.actualData = NOP
