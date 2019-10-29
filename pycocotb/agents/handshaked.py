@@ -35,16 +35,12 @@ class HandshakedAgent(SyncAgentBase):
         if not en:
             self.set_valid(0)
             self._lastVld = 0
-        else:
-            self.set_valid(0)
 
     def setEnable_asMonitor(self, en):
         super(HandshakedAgent, self).setEnable_asMonitor(en)
         if not en:
             self.set_ready(0)
             self._lastRd = 0
-        else:
-            self.set_ready(0)
 
     def get_ready(self) -> bool:
         """
@@ -78,7 +74,6 @@ class HandshakedAgent(SyncAgentBase):
         Collect data from interface
         """
         start = self.sim.now
-        # print("monitor %d %s" % (start, ",".join([i.name for i in self.intf])))
         yield WaitCombRead()
         if not self._enabled:
             return        
@@ -122,7 +117,6 @@ class HandshakedAgent(SyncAgentBase):
                 raise AssertionError(
                     self.sim.now, self.intf,
                     "vld signal is in invalid state")
-
             if vld:
                 # master responded with positive ack, do read data
                 d = self.get_data()
@@ -144,7 +138,6 @@ class HandshakedAgent(SyncAgentBase):
                 assert int(self.get_ready()) == self._lastRd
 
         assert start == self.sim.now
-        # print("monitor finished")
 
     def checkIfRdWillBeValid(self):
         yield WaitCombStable()
@@ -161,13 +154,11 @@ class HandshakedAgent(SyncAgentBase):
         set vld high and wait on rd in high then pass new data
         """
         start = self.sim.now
-        # print("driver %d %s" % (start, ",".join([i.name for i in self.intf])))
         yield WaitWriteOnly()
         if not self._enabled:
             return
         # pop new data if there are not any pending
         if self.actualData is NOP and self.data:
-            print("pop0", self.sim.now, self.data)
             self.actualData = self.data.popleft()
 
         doSend = self.actualData is not NOP
@@ -212,7 +203,6 @@ class HandshakedAgent(SyncAgentBase):
 
         if not vld:
             assert start == self.sim.now
-            # print("driver finished")
             return
 
         if rd:
@@ -226,7 +216,6 @@ class HandshakedAgent(SyncAgentBase):
             a = self.actualData
             # pop new data, because actual was read by slave
             if self.data:
-                print("pop0", self.sim.now, self.data)
                 self.actualData = self.data.popleft()
             else:
                 self.actualData = NOP
@@ -241,4 +230,3 @@ class HandshakedAgent(SyncAgentBase):
                 onDone()
 
         assert start == self.sim.now
-        #print("driver finished")
