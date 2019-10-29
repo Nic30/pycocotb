@@ -10,7 +10,7 @@ from typing import Tuple
 from pycocotb.agents.base import AgentBase
 from pycocotb.constants import Time
 from pycocotb.hdlSimulator import HdlSimulator
-from pycocotb.triggers import Timer, WaitAllStable
+from pycocotb.triggers import Timer, WaitTimeslotEnd
 
 
 # constants for most common baud rates
@@ -63,7 +63,7 @@ class UartDataAgent(AgentBase):
                     yield period
                     continue
 
-                yield WaitAllStable()
+                yield WaitTimeslotEnd()
                 d = intf.read()
                 if int(d) == self.START_BIT:
                     break
@@ -72,7 +72,7 @@ class UartDataAgent(AgentBase):
 
             for _ in range(8):
                 yield period
-                yield WaitAllStable()
+                yield WaitTimeslotEnd()
                 d = intf.read()
                 self.char_buff.append(d)
 

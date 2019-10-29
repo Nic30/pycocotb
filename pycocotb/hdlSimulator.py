@@ -191,6 +191,9 @@ class HdlSimulator():
                 self._current_time_slot = time_slot
                 assert now >= self.now, (now, time_slot)
                 rtl_sim.time = self.now = now
+
+                _run_event_list(time_slot.timeslot_begin)
+                
                 first_run = True
                 while first_run or time_slot.write_only:
                     _run_event_list(time_slot.write_only)
@@ -241,8 +244,8 @@ class HdlSimulator():
                 _run_event_list(time_slot.mem_stable)
                 time_slot.mem_stable = DONE
 
-                _run_event_list(time_slot.all_stable)
-                time_slot.all_stable = DONE
+                _run_event_list(time_slot.timeslot_end)
+                time_slot.timeslot_end = DONE
                 rtl_sim.set_write_only()
 
         except StopSimumulation:

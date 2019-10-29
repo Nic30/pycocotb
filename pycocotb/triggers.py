@@ -105,7 +105,6 @@ class Timer(Action):
 class DONE:
     pass
 
-
 class WaitWriteOnly(Action):
 
     def applyProcess(self, sim, process):
@@ -148,7 +147,7 @@ class WaitCombStable(Action):
         return False
 
 
-class WaitAllStable(Action):
+class WaitTimeslotEnd(Action):
 
     def applyProcess(self, sim, process):
         t = sim._current_time_slot

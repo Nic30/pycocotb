@@ -4,7 +4,7 @@ from typing import Tuple, Deque, Union, Optional
 from pycocotb.agents.base import AgentWitReset, NOP, RX, TX
 from pycocotb.agents.peripheral.tristate import TristateAgent, TristateClkAgent
 from pycocotb.triggers import WaitCombStable, WaitWriteOnly, WaitCombRead,\
-    WaitAllStable
+    WaitTimeslotEnd
 from enum import Enum
 from pycocotb.hdlSimulator import HdlSimulator
 
@@ -127,7 +127,7 @@ class I2cAgent(AgentWitReset):
         while self.bit_cntrl:
             yield WaitCombRead()
             if self.bit_cntrl:
-                yield WaitAllStable()
+                yield WaitTimeslotEnd()
 
     def execute_master_transaction(self):
         trans = self.data.pop()
