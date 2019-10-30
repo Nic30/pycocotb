@@ -168,7 +168,7 @@ class BasicRtlSimulator():
         "single simulation step"
         st = self.state
         if st == BasicRtlSimulatorSt.PRE_SET:
-            # apply all writes from outside word
+            # apply all writes from outside world
             self.state = BasicRtlSimulatorSt.EVAL_COMB
             self.read_only_not_write_only = True
             self._run_comb_processes()
