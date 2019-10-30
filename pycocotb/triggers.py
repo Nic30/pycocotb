@@ -113,7 +113,7 @@ class WaitWriteOnly(Action):
         if ev_list is None:
             ev_list = t.write_only = []
         elif ev_list is DONE:
-            raise AssertionError("Can not write in this time slot any more", sim.now)
+            raise AssertionError("Can not write in this time slot any more", sim.now, process)
         ev_list.append(process)
         return False
 
