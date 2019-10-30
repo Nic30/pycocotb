@@ -51,7 +51,11 @@ class BasicRtlSimProxy():
 
     def write(self, val):
         assert not self.sim.read_only_not_write_only
-        val = self._dtype.from_py(val)
+        t = getattr(val, "_dtype", None)
+        if t is None:
+            val = self._dtype.from_py(val)
+        else:
+            val = self._dtype.from_py(val.val, min(val.vld_mask, self._dtype.all_mask()))
         if valueHasChanged(self.val, val):
             self.val = val
             self._propagate_changes()
