@@ -65,10 +65,10 @@ DEFAULT_EXTENSION_EXTRA_ARGS = {
 
 
 def verilatorCompile(files: List[str], build_dir: str):
-    include_dirs = [ "-I%s" % dn
+    include_dirs = ["-I%s" % dn
                     for dn in set(dirname(f)
-                        for f in files)
-                    if dn and dn != "." ]
+                                  for f in files)
+                    if dn and dn != "."]
     files = [files[-1], ]
     cmd = [VERILATOR, "--cc", "--event-triggers",
            "--trace", "--Mdir", build_dir] + files + include_dirs

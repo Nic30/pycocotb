@@ -1,0 +1,33 @@
+
+class BasicRtlSimConfig():
+    """
+    Container of configuration of hdl simulator
+    """
+    def __init__(self):
+        # set to None to prevent redundant calls
+        # [attention] do not call this constructor if you do not want your methods
+        # to get deleted
+        self.beforeSim = None
+        self.logChange = None
+        self.logPropagation = None
+        self.logApplyingValues = None
+
+    def beforeSim(self, simulator, synthesisedUnit):
+        """
+        called beforee preparing of simulation
+        """
+
+    def logChange(self, nowTime, sig, nextVal):
+        """
+        Log change of value for signal
+        """
+
+    def logPropagation(self, simulator, signal, proceses):
+        """
+        Log value propagation over netlist
+        """
+
+    def logApplyingValues(self, simulator, values):
+        """
+        Log simulator value quantum applied
+        """

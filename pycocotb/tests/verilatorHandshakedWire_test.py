@@ -12,22 +12,22 @@ from pycocotb.tests.verilatorHierarchy_test import VerilatorHierarchyTC
 
 class HSAg(HandshakedAgent):
 
-    def setValid(self, val: bool):
+    def set_valid(self, val: bool):
         return self.intf[0].write(val)
 
-    def getValid(self):
+    def get_valid(self):
         return self.intf[0].read()
 
-    def getReady(self):
+    def get_ready(self):
         return self.intf[1].read()
 
-    def setReady(self, val:bool):
+    def set_ready(self, val:bool):
         self.intf[1].write(val)
 
-    def setData(self, data):
+    def set_data(self, data):
         self.intf[2].write(data)
 
-    def getData(self):
+    def get_data(self):
         return self.intf[2].read()
 
 

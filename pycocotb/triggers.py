@@ -105,7 +105,6 @@ class Timer(Action):
 class DONE:
     pass
 
-
 class WaitWriteOnly(Action):
 
     def applyProcess(self, sim, process):
@@ -114,7 +113,7 @@ class WaitWriteOnly(Action):
         if ev_list is None:
             ev_list = t.write_only = []
         elif ev_list is DONE:
-            raise AssertionError("Can not write in this time slot any more")
+            raise AssertionError("Can not write in this time slot any more", sim.now, process)
         ev_list.append(process)
         return False
 
@@ -148,13 +147,13 @@ class WaitCombStable(Action):
         return False
 
 
-class WaitAllStable(Action):
+class WaitTimeslotEnd(Action):
 
     def applyProcess(self, sim, process):
         t = sim._current_time_slot
-        ev_list = t.read_only
+        ev_list = t.timeslot_end
         if ev_list is None:
-            ev_list = t.read_only = []
+            ev_list = t.timeslot_end = []
         elif ev_list == DONE:
             ev_list = sim._current_event_list
         ev_list.append(process)

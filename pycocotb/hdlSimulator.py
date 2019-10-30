@@ -67,10 +67,11 @@ Pitfalls of delta-step based HDL simulators
               values can be undefined and read only access is required.
 """
 
+from inspect import isgenerator
+
+from pycocotb.simCalendar import SimTimeSlot, SimCalendar
 from pycocotb.triggers import Event, raise_StopSimulation, \
     StopSimumulation, Action, DONE
-from inspect import isgenerator
-from pycocotb.simCalendar import SimTimeSlot, SimCalendar
 
 
 # similar to https://github.com/potentialventures/cocotb/blob/master/cocotb/scheduler.py
@@ -191,6 +192,8 @@ class HdlSimulator():
                 assert now >= self.now, (now, time_slot)
                 rtl_sim.time = self.now = now
 
+                _run_event_list(time_slot.timeslot_begin)
+                
                 first_run = True
                 while first_run or time_slot.write_only:
                     _run_event_list(time_slot.write_only)
@@ -228,28 +231,29 @@ class HdlSimulator():
                 _run_event_list(time_slot.comb_stable)
                 time_slot.comb_stable = DONE
 
-                _run_event_list(time_slot.mem_stable)
-                time_slot.mem_stable = DONE
-
                 while True:
                     ret = rtl_sim.eval()
                     if rtl_sim.pending_event_list:
-                        if time_slot.comb_read is None:
-                            self._current_event_list = time_slot.all_stable = []
+                        if time_slot.mem_stable is None:
+                            self._current_event_list = time_slot.mem_stable = []
                         else:
-                            self._current_event_list = time_slot.all_stable
+                            self._current_event_list = time_slot.mem_stable
                         self._eval_rtl_events()
                     if ret == END:
                         break
+                _run_event_list(time_slot.mem_stable)
+                time_slot.mem_stable = DONE
 
-                _run_event_list(time_slot.all_stable)
-                time_slot.all_stable = DONE
+                _run_event_list(time_slot.timeslot_end)
+                time_slot.timeslot_end = DONE
                 rtl_sim.set_write_only()
 
         except StopSimumulation:
             pass
         finally:
             rtl_sim.finalize()
+        # to allow tesbenches to peek in to DUT after sim ended
+        rtl_sim.read_only_not_write_only = True
 
     def _schedule_proc_now(self, ev):
         assert isinstance(ev, (Action, Event)) or isgenerator(ev), ev

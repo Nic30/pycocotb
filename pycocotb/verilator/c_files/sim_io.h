@@ -34,7 +34,7 @@ struct SignalProxyPtr_t {
 
 };
 
-// intitialize PySimIo_pytype and it's dependencies
+// Initialize PySimIo_pytype and it's dependencies
 int PySimIo_pytype_prepare();
 
 int PySim_add_proxy(std::vector<const char *> signal_name, uint8_t * sig_addr,
