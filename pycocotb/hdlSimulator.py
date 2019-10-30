@@ -193,7 +193,7 @@ class HdlSimulator():
                 rtl_sim.time = self.now = now
 
                 _run_event_list(time_slot.timeslot_begin)
-                
+
                 first_run = True
                 while first_run or time_slot.write_only:
                     _run_event_list(time_slot.write_only)
