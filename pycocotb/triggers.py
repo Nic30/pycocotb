@@ -105,6 +105,7 @@ class Timer(Action):
 class DONE:
     pass
 
+
 class WaitWriteOnly(Action):
 
     def applyProcess(self, sim, process):
