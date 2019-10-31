@@ -7,6 +7,20 @@ from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead, Edge
 
 
+class TristateSignal():
+    """
+    Container of signals for controll of tristate block
+
+    :ivar i: input - slave to master
+    :ivar o: output - master to slave
+    :ivar t: master to slave, if 1 the value of o is set to i
+    """
+    def __init__(self, i: "RtlSignal", o: "RtlSignal", t: "RtlSignal"):
+        self.i = i
+        self.o = o
+        self.t = t
+
+
 class TristateAgent(AgentWitReset):
     """
     :ivar selfSynchronization: if True the agent reads/write
@@ -17,7 +31,7 @@ class TristateAgent(AgentWitReset):
 
     def __init__(self,
                  sim: HdlSimulator,
-                 intf: Tuple["RtlSignal", "RtlSignal", "RtlSignal"],
+                 intf: TristateSignal,
                  rst: Tuple["RtlSignal", bool]):
         """
         :param intf: tuple (i signal, o signal, t signal)
@@ -26,7 +40,7 @@ class TristateAgent(AgentWitReset):
             if 't'=0 the 'o' does not have effect
         """
         super(TristateAgent, self).__init__(sim, intf, rst)
-        self.i, self.o, self.t = intf
+        self.i, self.o, self.t = intf.i, intf.o, intf.t
         self.data = deque()
         # can be (1: pull-up, 0: pull-down, None: disconnected)
         self.pullMode: Union[1, 0, None] = 1

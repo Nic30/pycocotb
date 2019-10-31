@@ -2,14 +2,13 @@ from collections import deque
 from typing import Tuple, Deque, Union, Optional
 
 from pycocotb.agents.base import AgentWitReset, NOP, RX, TX
-from pycocotb.agents.peripheral.tristate import TristateAgent, TristateClkAgent
+from pycocotb.agents.peripheral.tristate import TristateAgent, TristateClkAgent,\
+    TristateSignal
 from pycocotb.triggers import WaitCombStable, WaitWriteOnly, WaitCombRead,\
     WaitTimeslotEnd
 from enum import Enum
 from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.process_utils import OnRisingCallbackLoop, OnFallingCallbackLoop
-
-TRI_STATE_SIG_T = Tuple["RtlSignal", "RtlSignal", "RtlSignal"]  # i, o, t
 
 
 class I2C_MODE(Enum):
@@ -75,7 +74,7 @@ class I2cAgent(AgentWitReset):
     RESTART = START
     STOP = "STOP"
 
-    def __init__(self, sim: HdlSimulator, intf: Tuple[TRI_STATE_SIG_T, TRI_STATE_SIG_T],
+    def __init__(self, sim: HdlSimulator, intf: Tuple[TristateSignal, TristateSignal],
                  rst: Tuple["RtlSignal", bool],
                  MODE=I2C_MODE.STANDARD,
                  ADDR_BITS=I2C_ADDR.ADDR_7b):
@@ -98,6 +97,13 @@ class I2cAgent(AgentWitReset):
         self.slave = False
         self.mode = MODE
         self.addr_bits = ADDR_BITS
+
+    def hasTransactionPending(self):
+        return (
+            self.data_m
+            or self.data_m_read
+            or self.bit_cntrl
+            or self.bit_cntrl_rx)
 
     def _transmit_byte(self, val: int, ack_for_check: Optional[bool]):
         for i in range(8):
@@ -187,14 +193,14 @@ class I2cAgent(AgentWitReset):
 
     def getMonitors(self):
         sim = self.sim
+        scl = self.intf[0]
         self.scl = TristateClkAgent(
-            sim, self.intf[0], (self.rst, self.rstOffIn),
+            sim, scl, (self.rst, self.rstOffIn),
         )
-        scl = self.intf[0][0]
         self.monitor = OnRisingCallbackLoop(
-            sim, scl, self.monitor, self.getEnable)
+            sim, scl.i, self.monitor, self.getEnable)
         self.startListener = OnFallingCallbackLoop(
-            sim, scl, self.startListener, self.getEnable)
+            sim, scl.i, self.startListener, self.getEnable)
 
         return (
             self.monitor(),
@@ -205,15 +211,15 @@ class I2cAgent(AgentWitReset):
 
     def getDrivers(self):
         sim = self.sim
-        self.scl = TristateClkAgent(
-            sim, self.intf[0], (self.rst, self.rstOffIn),
-        )
+        scl = self.intf[0]
         driver = self.driver
-        scl = self.intf[0][0]
+        self.scl = TristateClkAgent(
+            sim, scl, (self.rst, self.rstOffIn),
+        )
         self.driver = OnRisingCallbackLoop(
-            sim, scl, self.driver, self.getEnable)
+            sim, scl.i, self.driver, self.getEnable)
         self.startSender = OnFallingCallbackLoop(
-            sim, scl, self.startSender, self.getEnable)
+            sim, scl.i, self.startSender, self.getEnable)
         self.scl.setEnable(False, None)
         return (
             driver(),  # initialization of the interface
