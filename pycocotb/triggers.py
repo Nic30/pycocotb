@@ -1,3 +1,4 @@
+from pycocotb.simCalendar import DONE
 
 
 class Event():
@@ -66,14 +67,14 @@ class Edge(Action):
     def applyProcess(self, sim, process):
         if len(self.signals) > 1:
 
-            def wrap(sim):
+            def wrap():
                 """
                 Because we need to wake process only once
                 and after ignore wake potentially caused by edges on other signals
                 """
                 yield process
 
-            p = wrap(sim)
+            p = wrap()
         else:
             p = process
 
@@ -102,10 +103,6 @@ class Timer(Action):
         return "<Timer %r>" % (self.time)
 
 
-class DONE:
-    pass
-
-
 class WaitWriteOnly(Action):
 
     def applyProcess(self, sim, process):
@@ -115,7 +112,7 @@ class WaitWriteOnly(Action):
             ev_list = t.write_only = []
         elif ev_list is DONE:
             raise AssertionError("Can not write in this time slot any more",
-                                 sim.now, process)
+                                 sim.now, process, sim._current_time_slot)
         ev_list.append(process)
         return False
 

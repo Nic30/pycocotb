@@ -1,6 +1,9 @@
-from itertools import chain
 from sortedcontainers.sorteddict import SortedDict
 from typing import Tuple
+
+
+class DONE:
+    pass
 
 
 class SimTimeSlot():
@@ -27,6 +30,23 @@ class SimTimeSlot():
         self.comb_stable = None
         self.mem_stable = None
         self.timeslot_end = None
+
+    def get_state_name(self):
+        if self.timeslot_begin is not DONE:
+            return "timeslot_begin"
+        elif self.write_only is not DONE:
+            return "write_only"
+        elif self.comb_read is not DONE:
+            return "comb_read"
+        elif self.mem_stable is not DONE:
+            return "mem_stable"
+        elif self.timeslot_end is not DONE:
+            return "timeslot_end"
+        else:
+            return "after timeslot_end"
+
+    def __repr__(self):
+        return "<%s in %s>" % (self.__class__.__name__, self.get_state_name())
 
 
 # internal
