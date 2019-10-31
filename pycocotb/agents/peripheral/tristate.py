@@ -82,12 +82,12 @@ class TristateAgent(AgentWitReset):
     def getMonitors(self):
         return [self.onTWriteCallback(), ]
 
-    def onTWriteCallback(self, sim):
+    def onTWriteCallback(self):
         while True:
             yield Edge(self.t, self.o)
 
             if self.getEnable():
-                yield from self.monitor(sim)
+                yield from self.monitor()
 
     def _write(self, val: Union[int, NOP]):
         """

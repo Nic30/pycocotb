@@ -7,6 +7,7 @@ from pycocotb.triggers import WaitCombStable, WaitWriteOnly, WaitCombRead,\
     WaitTimeslotEnd
 from enum import Enum
 from pycocotb.hdlSimulator import HdlSimulator
+from pycocotb.process_utils import OnRisingCallbackLoop, OnFallingCallbackLoop
 
 TRI_STATE_SIG_T = Tuple["RtlSignal", "RtlSignal", "RtlSignal"]  # i, o, t
 
@@ -185,26 +186,40 @@ class I2cAgent(AgentWitReset):
         yield
 
     def getMonitors(self):
+        sim = self.sim
         self.scl = TristateClkAgent(
-            self.intf[0], self.rst, self.rstOffIn,
-            onRisingCallback=self.monitor,
-            onFallingCallback=self.startListener
+            sim, self.intf[0], (self.rst, self.rstOffIn),
         )
+        scl = self.intf[0][0]
+        self.monitor = OnRisingCallbackLoop(
+            sim, scl, self.monitor, self.getEnable)
+        self.startListener = OnFallingCallbackLoop(
+            sim, scl, self.startListener, self.getEnable)
+
         return (
+            self.monitor(),
+            self.startListener(),
             *self.sda.getMonitors(),
             *self.scl.getMonitors()
         )
 
     def getDrivers(self):
+        sim = self.sim
         self.scl = TristateClkAgent(
-            self.intf[0], self.rst, self.rstOffIn,
-            onRisingCallback=self.driver,
-            onFallingCallback=self.startSender
+            sim, self.intf[0], (self.rst, self.rstOffIn),
         )
+        driver = self.driver
+        scl = self.intf[0][0]
+        self.driver = OnRisingCallbackLoop(
+            sim, scl, self.driver, self.getEnable)
+        self.startSender = OnFallingCallbackLoop(
+            sim, scl, self.startSender, self.getEnable)
         self.scl.setEnable(False, None)
         return (
-            self.driver,  # initialization of the interface
-            * self.sda.getDrivers(),
+            driver(),  # initialization of the interface
+            self.driver(),
+            self.startSender(),
+            *self.sda.getDrivers(),
             *self.scl.getDrivers()
         )
 
