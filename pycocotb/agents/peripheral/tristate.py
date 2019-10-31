@@ -5,6 +5,7 @@ from pycocotb.agents.base import AgentWitReset, NOP
 from pycocotb.agents.clk import DEFAULT_CLOCK
 from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead, Edge
+from pycocotb.simCalendar import DONE
 
 
 class TristateSignal():
@@ -100,8 +101,11 @@ class TristateAgent(AgentWitReset):
     def onTWriteCallback(self):
         while True:
             yield Edge(self.t, self.o)
-
             if self.getEnable():
+                # if we are this signal was update by change of some memory we can not write in this
+                # time slot and we have to wait for another
+                if self.sim._current_time_slot.write_only is DONE:
+                    yield Timer(1)
                 yield from self.monitor()
 
     def _write(self, val: Union[int, NOP]):
