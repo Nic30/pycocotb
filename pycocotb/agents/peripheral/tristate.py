@@ -137,6 +137,7 @@ class TristateAgent(AgentWitReset):
 class TristateClkAgent(TristateAgent):
     """
     Agent for tri-state interface which generates clock signal
+    and ignores all other components which are trying to drive this clk signal
     """
 
     def __init__(self, sim: HdlSimulator, intf, rst: Tuple["RtlSignal", bool]):
