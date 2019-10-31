@@ -63,16 +63,17 @@ class TristateAgent(AgentWitReset):
                 t = int(t)
             except ValueError:
                 raise AssertionError(
-                    sim.now, self.t, "This mode, this value => ioblock would burn")
+                    sim.now, self.t, "Invalid value on tristate interface => ioblock would burn")
             try:
                 o = int(o)
             except ValueError:
                 raise AssertionError(
-                    sim.now, self.o, "This mode, this value => ioblock would burn")
+                    sim.now, self.o, "Invalid value on tristate interface => ioblock would burn")
 
-            if self.pullMode != o:
+            if self.pullMode == o:
                 raise AssertionError(
-                    sim.now, self.o, "This mode, this value => ioblock would burn")
+                    sim.now, self.o, "Can not set value to a same as pull up,"
+                    " because others may try to set it to oposite => ioblock would burn")
 
         if t:
             v = o
