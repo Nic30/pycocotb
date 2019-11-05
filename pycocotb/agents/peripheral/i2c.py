@@ -36,7 +36,7 @@ class I2cAgent(AgentWitReset):
     https://www.nxp.com/docs/en/user-guide/UM10204.pdf
     https://dlbeer.co.nz/articles/i2c.html
 
-    The agent will support slave mode after it's address is set
+    :note: The agent will support slave mode after it's address is set.
 
     Master agent transaction formats:
           [((READ, ACK/NACK) | (WRITE, VALUE, ACK/NACK) | (REPEATED_START, duration in I2C clk))*]
