@@ -75,9 +75,7 @@ class I2cAgent(AgentWitReset):
     STOP = "STOP"
 
     def __init__(self, sim: HdlSimulator, intf: Tuple[TristateSignal, TristateSignal],
-                 rst: Tuple["RtlSignal", bool],
-                 MODE=I2C_MODE.STANDARD,
-                 ADDR_BITS=I2C_ADDR.ADDR_7b):
+                 rst: Tuple["RtlSignal", bool]):
         """
         :param: intf i2c interface, tuple (scl, sda) = (clock, data),
             sda/sdc are tri-state interfaces represented by i, o, t signals
@@ -89,14 +87,13 @@ class I2cAgent(AgentWitReset):
                                 Union[RX, TX],
                                 Optional[int]
                                 ]] = deque()
-        self.bit_cntrl_rx: List[int] = []
+        self.bit_cntrl_rx: Deque[Union[START, STOP, int]] = Deque()
         self.start = True
         self.sda = TristateAgent(sim, intf[1], rst)
         self.sda.collectData = False
         self.sda.selfSynchronization = False
         self.slave = False
-        self.mode = MODE
-        self.addr_bits = ADDR_BITS
+        self.bit_index = None
 
     def hasTransactionPending(self):
         return (
@@ -154,6 +151,11 @@ class I2cAgent(AgentWitReset):
                 ValueError(m)
         self.stop = True
 
+    def monitor_on_read(self, addr):
+        raise NotImplementedError()
+    def monitor_on_write(self, addr):
+        raise NotImplementedError()
+    
     def execute_slave_transaction(self):
         if self.ADDR_BITS == I2C_ADDR.ADDR_7b:
             yield from self._receive_byte(1)
@@ -172,12 +174,18 @@ class I2cAgent(AgentWitReset):
             addrHigh = int(addrHigh)
             addr = (addr << 8) | addrHigh
 
+        if rw == self.READ:
+            yield from self.monitor_on_read(addr)
+        else:
+            yield from self.monitor_on_write(addr)
+
     def startListener(self):
         # SDA->0 and SCL=1
         if self.start:
-            self.bits.append(self.START)
+            self.bit_index = 0
+            self.bit_cntrl_rx.append(self.START)
             self.start = False
-            yield self.execute_master_transaction()
+            # yield sexecute_master_transactionelf.execute_master_transaction()
 
         return
         yield
@@ -185,6 +193,7 @@ class I2cAgent(AgentWitReset):
     def startSender(self):
         # SDA->0 and SCL=1
         if self.start:
+            self.bit_index = 0
             self.sda._write(0)
             self.start = False
 
@@ -231,14 +240,18 @@ class I2cAgent(AgentWitReset):
 
     def monitor(self):
         # now intf.sdc is rising
-        yield WaitCombStable()
+        yield WaitCombRead()
         # wait on all agents to update values and on
         # simulator to apply them
         if self.sim.now > 0 and self.notReset():
-            for _ in range(8):
+            if self.bit_index != 8:
+                self.bit_index += 1
+                yield WaitCombStable()
                 v = self.sda.i.read()
-                self.bits.append(v)
-            self.sda._write(self.ACK)
+                self.bit_cntrl_rx.append(v)
+            else:
+                yield WaitWriteOnly()
+                self.sda._write(self.ACK)
 
     def driver(self):
         # now intf.sdc is rising
@@ -250,6 +263,7 @@ class I2cAgent(AgentWitReset):
                 self.start = True
                 return
             elif b == self.STOP:
+                self.bit_index = None
                 self.stop = True
                 return
         else:
