@@ -52,7 +52,6 @@ install:
 - sudo make install
 - cd ..
 - python setup.py install --verilator
-- ls /home/travis/build/Nic30/pycocotb/build/
 
 script:
 - coverage run --source=pycocotb setup.py test
