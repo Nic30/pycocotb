@@ -5,16 +5,15 @@
 [ROADMAP](https://drive.google.com/file/d/1zyegLIf7VaBRyb-ED5vgOMmHzW4SRZLp/view?usp=sharing)
 
 
-[COCOTB](https://github.com/potentialventures/cocotb) like HDL simulation environment where simulation is driven from Python. 
-Simulation is just an object instance and can be manipulated as any other object.
-This allows better code reuse, integration with existing test frameworks and better test automation.
+This is a library which contains bindigns for RTL simulators and provides UVM like environment which simplifies feeding and checking the circuit running in RTL simulator.
+Goal of this library is to remove obscurity and support code reuse. Each simulation is just python object without special properties. This allows also integration with existing test frameworks and better test automation and debugging.
 
 
 # Installation
 
-## Linux
+## Linux (Ubuntu 19.10)
 
-* `sudo apt install build-essential python3 cmake flex bison git libboost-dev libboost-all-dev` 
+* `sudo apt install build-essential python3 cmake flex bison git libboost-dev libboost-all-dev`
 * download [verilator](https://www.veripool.org/projects/verilator/wiki/Installing)
 * apply patches from `verilator_patches_tmp` ( as it is done in [.travis.yml](https://github.com/Nic30/pycocotb/blob/master/.travis.yml#L50))
 * install verilator
@@ -23,19 +22,23 @@ This allows better code reuse, integration with existing test frameworks and bet
 
 ## Windows
 
+Using windows is not recomended with verilator. Asi it is more easy to use docker than tweak Verilator to run on Windows as desired.
+
 * install [Python 3](https://www.python.org/downloads/)
 * install [Visual Studio](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=15) (C++)
 * install [CMake](https://cmake.org/)
 * install [boost](https://www.boost.org/doc/libs/1_69_0/more/getting_started/windows.html)
-* install [Cygwin](https://cygwin.com/install.html) and save installer `setup-x86_64.exe` to cygwin root. 
-* use `ci_scripts/appveyor_install.sh` to install this library and it's dependencies 
+* install [Cygwin](https://cygwin.com/install.html) and save installer `setup-x86_64.exe` to cygwin root.
+* use `ci_scripts/appveyor_install.sh` to install this library and it's dependencies
 
 After installation verilator has to run under cygwin, but python and this library are not restricted.
 
 
-# Current state
-* alfa
-* experimental Python <-> Verilator binding, experimental UVM like environment
+
+# Current state - alfa
+* experimental UVM like environment
+* experimental Python <-> Verilator RTL simulator binding (pycocotb.verilator)
+* experimental Python based RTL simulator (pycocotb.basic_hdl_simulator)
 * some examples in tests
 
 
