@@ -51,6 +51,20 @@ setup(
         "jinja2",  # template engine
         "sortedcontainers",  # for calendar queue in simulator
     ],
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+        "Topic :: System :: Hardware",
+        "Topic :: System :: Emulators",
+        "Topic :: Utilities"],
     license='MIT',
     packages=find_packages(),
     package_data={'pycocotb.verilator': ['*.h', '*.cpp', '*.template']},
