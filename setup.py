@@ -18,7 +18,9 @@ if "--verilator" in sys.argv:
                              "sim_io.cpp",
                              "pycocotb_sim.cpp"]
                    ]
-    VERILATOR_ROOT = "/usr/local/share/verilator"
+    #VERILATOR_ROOT = "/usr/local/share/verilator"
+    VERILATOR_ROOT = "./verilator"
+
     VERILATOR_INCLUDE_DIR = os.path.join(VERILATOR_ROOT, "include")
     VERILATOR_SOURCES = [
         os.path.join(VERILATOR_INCLUDE_DIR, x)
