@@ -51,7 +51,7 @@ install:
   fi
 - sudo make install
 - cd ..
-- python setup.py build --verilator
+- python setup.py install --verilator
 script:
 - coverage run --source=pycocotb setup.py test
 deploy:
