@@ -95,8 +95,8 @@ class HdlSimulator():
         self.rtl_simulator = rtl_simulator
         self.now = 0
         self._events = SimCalendar()
-        self._current_time_slot: SimTimeSlot = None
-        self._current_event_list: List = None
+        self._current_time_slot = None  # type: SimTimeSlot
+        self._current_event_list = None  # type: List
 
         schedule = self._events.push
 
