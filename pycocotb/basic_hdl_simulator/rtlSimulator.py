@@ -32,8 +32,9 @@ class BasicRtlSimulator():
     END_OF_STEP = 2  # all parts of circuit updated and stable
 
     def __init__(self):
-        self.io: BasicRtlSimIo = None  # container of signals in simulation
-        self.model: BasicRtlSimModel = None
+        # container of signals in simulation
+        self.io = None  # type: BasicRtlSimIo
+        self.model = None  # type: BasicRtlSimModel
         self.time = 0  # actual simulation time
         # if true the IO can be only read if false the IO can be only written
         self.read_only_not_write_only = False
