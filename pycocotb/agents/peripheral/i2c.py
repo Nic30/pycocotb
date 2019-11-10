@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Tuple, Deque, Union, Optional
+from typing import Tuple, Union, Optional
 
 from pycocotb.agents.base import AgentWitReset, NOP, RX, TX
 from pycocotb.agents.peripheral.tristate import TristateAgent, TristateClkAgent,\
@@ -83,11 +83,8 @@ class I2cAgent(AgentWitReset):
         AgentWitReset.__init__(self, sim, intf, rst)
         self.data_m = deque()
         self.data_m_read = []
-        self.bit_cntrl: Deque[Tuple[
-                                Union[RX, TX],
-                                Optional[int]
-                                ]] = deque()
-        self.bit_cntrl_rx: Deque[Union[START, STOP, int]] = Deque()
+        self.bit_cntrl = deque()  # type: Deque[ Tuple[Union[RX, TX], Optional[int]] ]
+        self.bit_cntrl_rx = deque()  # type: Deque[Union[START, STOP, int]]
         self.start = True
         self.sda = TristateAgent(sim, intf[1], rst)
         self.sda.collectData = False
@@ -155,7 +152,7 @@ class I2cAgent(AgentWitReset):
         raise NotImplementedError()
     def monitor_on_write(self, addr):
         raise NotImplementedError()
-    
+
     def execute_slave_transaction(self):
         if self.ADDR_BITS == I2C_ADDR.ADDR_7b:
             yield from self._receive_byte(1)

@@ -44,7 +44,7 @@ class TristateAgent(AgentWitReset):
         self.i, self.o, self.t = intf.i, intf.o, intf.t
         self.data = deque()
         # can be (1: pull-up, 0: pull-down, None: disconnected)
-        self.pullMode: Union[1, 0, None] = 1
+        self.pullMode = 1  # type: Union[1, 0, None]
         self.selfSynchronization = True
         self.collectData = True
 
@@ -108,9 +108,11 @@ class TristateAgent(AgentWitReset):
                     yield Timer(1)
                 yield from self.monitor()
 
-    def _write(self, val: Union[int, NOP]):
+    def _write(self, val):
         """
         Update value on interface.
+
+        :type val: Union[int, NOP]
         """
         if val is NOP:
             # control now has slave

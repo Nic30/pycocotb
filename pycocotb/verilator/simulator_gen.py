@@ -1,6 +1,13 @@
 
 
+from copy import deepcopy
+from distutils.sysconfig import get_config_var
+from importlib import machinery
+from jinja2.environment import Environment
+from jinja2.loaders import PackageLoader
 import os
+from os.path import dirname
+import  platform
 from setuptools import Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.dist import Distribution
@@ -8,14 +15,8 @@ from subprocess import check_call
 import sys
 from typing import List, Dict, Tuple
 
-from jinja2.environment import Environment
-from jinja2.loaders import PackageLoader
-
 from pycocotb.verilator.fs_utils import find_files, working_directory
-from copy import deepcopy
-from distutils.sysconfig import get_config_var
-from importlib import machinery
-from os.path import dirname
+
 
 VER_SIM_GEN_BASE = os.path.dirname(__file__)
 COCOPY_SRC_DIR = os.path.join(VER_SIM_GEN_BASE, "c_files")
@@ -34,7 +35,7 @@ SOABI = get_config_var("SOABI")
 # e.g. "linux"
 MACHDEP = get_config_var("MACHDEP")
 # e.g. "x86_64"
-AR = get_config_var("AR").split("-")[0]
+AR = platform.processor()
 # e.g. "3.6"
 VERSION = get_config_var("VERSION")
 

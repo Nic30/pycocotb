@@ -5,6 +5,7 @@
 .pyc
 pycocotb.egg-info
 build/
+dist/
 
 # eclipse project
 .project
