@@ -49,4 +49,5 @@ After installation verilator has to run under cygwin, but python and this librar
 * [firesim](https://github.com/firesim/firesim)
 * [cocotb](https://github.com/cocotb/cocotb) - there is also WIP version of cocotb-verilator integration
 * [chisel-testers](https://github.com/freechipsproject/chisel-testers)
+* [fli](https://github.com/andrepool/fli) - using ModelSim Foreign Language Interface for c – VHDL
 

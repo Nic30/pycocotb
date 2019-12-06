@@ -199,7 +199,7 @@ class HandshakedAgent(SyncAgentBase):
         except ValueError:
             raise AssertionError(
                 self.sim.now, self.intf,
-                "rd signal in invalid state")
+                "rd signal in invalid state") from None
 
         if not vld:
             assert start == self.sim.now
