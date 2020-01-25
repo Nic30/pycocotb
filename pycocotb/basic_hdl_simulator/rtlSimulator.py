@@ -47,12 +47,12 @@ class BasicRtlSimulator():
         self._seq_procs_to_run = SortedSet(key=id)
         self.config = BasicRtlSimConfig()
         self._updated_in_this_step = set()
+        self.needs_init = True
 
     def bound_model(self, model: BasicRtlSimModel):
         self.model = model
         self.io = model.io
         self._bound_model_procs(model)
-        self._init_model_signals(model)
 
     def _bound_model_procs(self, m: BasicRtlSimModel):
         for p, outputs in m._outputs.items():
@@ -167,6 +167,10 @@ class BasicRtlSimulator():
 
     def eval(self):
         "single simulation step"
+        if self.needs_init:
+            self._init_model_signals(self.model)
+            self.needs_init = False
+
         st = self.state
         if st == BasicRtlSimulatorSt.PRE_SET:
             # apply all writes from outside world
