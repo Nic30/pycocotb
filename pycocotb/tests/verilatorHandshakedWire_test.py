@@ -21,7 +21,7 @@ class HSAg(HandshakedAgent):
     def get_ready(self):
         return self.intf[1].read()
 
-    def set_ready(self, val:bool):
+    def set_ready(self, val: bool):
         self.intf[1].write(val)
 
     def set_data(self, data):
@@ -33,8 +33,10 @@ class HSAg(HandshakedAgent):
 
 def generate_handshaked_agents(sim, io, clk, rst_n):
 
-    din_ag = HSAg(sim, (io.dataIn_vld, io.dataIn_rd, io.dataIn_data), clk, (rst_n, True))
-    dout_ag = HSAg(sim, (io.dataOut_vld, io.dataOut_rd, io.dataOut_data), clk, (rst_n, True))
+    din_ag = HSAg(sim, (io.dataIn_vld, io.dataIn_rd, io.dataIn_data),
+                  clk, (rst_n, True))
+    dout_ag = HSAg(sim, (io.dataOut_vld, io.dataOut_rd, io.dataOut_data),
+                   clk, (rst_n, True))
 
     return din_ag, dout_ag
 
@@ -61,7 +63,8 @@ class VerilatorHandshakedWireTC(unittest.TestCase):
             ("dataOut_vld", 1, 0, 1),
         ]
         verilog_files = ["HandshakedWire.v"]
-        return build_sim(verilog_files, accessible_signals, self, build_dir, "HandshakedWire")
+        return build_sim(verilog_files, accessible_signals, self,
+                         build_dir, "HandshakedWire")
 
     def _test_pass_data(self, initFn):
         # build_dir = "tmp"
@@ -71,7 +74,8 @@ class VerilatorHandshakedWireTC(unittest.TestCase):
             io = rtl_sim.io
             sim = HdlSimulator(rtl_sim)
 
-            din_ag, dout_ag = generate_handshaked_agents(sim, io, io.clk, io.rst_n)
+            din_ag, dout_ag = generate_handshaked_agents(
+                sim, io, io.clk, io.rst_n)
 
             extra_procs = initFn(sim, din_ag, dout_ag)
             if extra_procs is None:
