@@ -51,4 +51,5 @@ After installation verilator has to run under cygwin, but python and this librar
 * [chisel-testers](https://github.com/freechipsproject/chisel-testers)
 * [fli](https://github.com/andrepool/fli) - using ModelSim Foreign Language Interface for c – VHDL
 * [kratos](https://github.com/Kuree/kratos) - hardware generator/simulator
+* [uvm-python](https://github.com/tpoikela/uvm-python) - cocotb based python UVM
 
