@@ -1,11 +1,12 @@
 from pycocotb.agents.base import AgentBase
-from pycocotb.constants import CLK_PERIOD
+from pycocotb.constants import CLK_PERIOD, Time
 from pycocotb.hdlSimulator import HdlSimulator
 from pycocotb.process_utils import CallbackLoop
 from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead
 
 
-DEFAULT_CLOCK = CLK_PERIOD
+def freq_to_period(f):
+    return (Time.s / f)
 
 
 class ClockAgent(AgentBase):
@@ -21,7 +22,7 @@ class ClockAgent(AgentBase):
     :ivar initWait: time to wait before starting oscillation
     """
 
-    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", period=DEFAULT_CLOCK):
+    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", period=CLK_PERIOD):
         super(ClockAgent, self).__init__(sim, intf)
         self.period = period
         self.initWait = 0

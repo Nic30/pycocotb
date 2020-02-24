@@ -2,10 +2,10 @@ from collections import deque
 from typing import Tuple, Union
 
 from pycocotb.agents.base import AgentWitReset, NOP
-from pycocotb.agents.clk import DEFAULT_CLOCK
+from pycocotb.constants import CLK_PERIOD
 from pycocotb.hdlSimulator import HdlSimulator
-from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead, Edge
 from pycocotb.simCalendar import DONE
+from pycocotb.triggers import Timer, WaitWriteOnly, WaitCombRead, Edge
 
 
 class TristateSignal():
@@ -150,7 +150,7 @@ class TristateAgent(AgentWitReset):
                 self.t.write(t)
 
             if self.selfSynchronization:
-                yield Timer(DEFAULT_CLOCK)
+                yield Timer(CLK_PERIOD)
             else:
                 break
 
@@ -163,7 +163,7 @@ class TristateClkAgent(TristateAgent):
 
     def __init__(self, sim: HdlSimulator, intf, rst: Tuple["RtlSignal", bool]):
         super(TristateClkAgent, self).__init__(sim, intf, rst)
-        self.period = DEFAULT_CLOCK
+        self.period = CLK_PERIOD
         self.collectData = False
 
     def driver(self):
