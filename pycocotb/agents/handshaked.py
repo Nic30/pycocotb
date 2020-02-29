@@ -27,20 +27,29 @@ class HandshakedAgent(SyncAgentBase):
         self._lastVld = None
         # callbacks
         self._afterRead = None
-        #self.driver.pre_init = True
-        #self.monitor.pre_init = True
 
     def setEnable_asDriver(self, en):
         super(HandshakedAgent, self).setEnable_asDriver(en)
-        if not en:
+        if en:
+            # pop new data if there are not any pending
+            if self.actualData is NOP and self.data:
+                self.actualData = self.data.popleft()
+
+            doSend = self.actualData is not NOP
+            if doSend:
+                self.set_data(self.actualData)
+            doSend = int(doSend)
+            self.set_valid(doSend)
+            self._lastVld = doSend
+        else:
             self.set_valid(0)
+            self.set_data(None)
             self._lastVld = 0
 
     def setEnable_asMonitor(self, en):
         super(HandshakedAgent, self).setEnable_asMonitor(en)
-        if not en:
-            self.set_ready(0)
-            self._lastRd = 0
+        self.set_ready(int(en))
+        self._lastRd = int(en)
 
     def get_ready(self) -> bool:
         """
@@ -76,7 +85,7 @@ class HandshakedAgent(SyncAgentBase):
         start = self.sim.now
         yield WaitCombRead()
         if not self._enabled:
-            return        
+            return
 
         if self.notReset():
             yield WaitWriteOnly()
@@ -96,14 +105,14 @@ class HandshakedAgent(SyncAgentBase):
                 if onMonitorReady is not None:
                     onMonitorReady()
             else:
-                yield WaitCombRead() 
+                yield WaitCombRead()
                 assert int(self.get_ready()) == self._lastRd, (
                     "Something changed the value of ready withou notifying of this agent"
                     " which is responsible for this",
                     self.sim.now, self.get_ready(), self._lastRd)
                 if not self._enabled:
                     return
-           
+
             if not self._enabled:
                 return
             # wait for response of master
