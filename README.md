@@ -48,6 +48,7 @@ After installation verilator has to run under cygwin, but python and this librar
 * [midas](https://github.com/ucb-bar/midas)
 * [firesim](https://github.com/firesim/firesim)
 * [cocotb](https://github.com/cocotb/cocotb) - there is also WIP version of cocotb-verilator integration
+* [cocotb-coverage](https://github.com/mciepluc/cocotb-coverage) - Functional Coverage and Constrained Randomization Extensions for Cocotb 
 * [chisel-testers](https://github.com/freechipsproject/chisel-testers)
 * [fli](https://github.com/andrepool/fli) - using ModelSim Foreign Language Interface for c – VHDL
 * [kratos](https://github.com/Kuree/kratos) - hardware generator/simulator
