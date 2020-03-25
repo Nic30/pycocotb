@@ -50,4 +50,5 @@ After installation verilator has to run under cygwin, but python and this librar
 * [cocotb](https://github.com/cocotb/cocotb) - there is also WIP version of cocotb-verilator integration
 * [chisel-testers](https://github.com/freechipsproject/chisel-testers)
 * [fli](https://github.com/andrepool/fli) - using ModelSim Foreign Language Interface for c – VHDL
+* [py-hpi](https://github.com/fvutils/py-hpi) - Python/Simulator integration using procedure calls 
 
