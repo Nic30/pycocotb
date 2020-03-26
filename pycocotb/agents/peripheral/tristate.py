@@ -12,9 +12,9 @@ class TristateSignal():
     """
     Container of signals for controll of tristate block
 
-    :ivar i: input - slave to master
-    :ivar o: output - master to slave
-    :ivar t: master to slave, if 1 the value of o is set to i
+    :ivar ~.i: input - slave to master
+    :ivar ~.o: output - master to slave
+    :ivar ~.t: master to slave, if 1 the value of o is set to i
     """
     def __init__(self, i: "RtlSignal", o: "RtlSignal", t: "RtlSignal"):
         self.i = i
@@ -24,9 +24,9 @@ class TristateSignal():
 
 class TristateAgent(AgentWitReset):
     """
-    :ivar selfSynchronization: if True the agent reads/write
+    :ivar ~.selfSynchronization: if True the agent reads/write
         with a perior of DEFAULT_CLOCK
-    :ivar pullMode: specifies how the interface should behave if none drives it
+    :ivar ~.pullMode: specifies how the interface should behave if none drives it
         can be (1: pull-up, 0: pull-down, None: disconnected)
     """
 

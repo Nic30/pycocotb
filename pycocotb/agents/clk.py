@@ -14,8 +14,8 @@ class ClockAgent(AgentBase):
     * In monitor driver captures tuples (time, nextVal) for each change
         on signal (nextVal is 1/0/None)
 
-    :ivar period: period of signal to generate
-    :ivar initWait: time to wait before starting oscillation
+    :ivar ~.period: period of signal to generate
+    :ivar ~.initWait: time to wait before starting oscillation
     """
 
     def __init__(self, sim: HdlSimulator, intf: "RtlSignal", period=CLK_PERIOD):

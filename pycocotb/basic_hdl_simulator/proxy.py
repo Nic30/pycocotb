@@ -10,17 +10,17 @@ class BasicRtlSimProxy():
     """
     Signal proxy which manages the access to a memory in simulation
 
-    :ivar callbacks: list of sim processes which will be waken up if signal value is updated
-    :ivar sim: main simulator
-    :ivar name: name of property which is this proxy stored in on parent
-    :ivar _name: signal name which was used in HDL
-    :ivar _dtype: data type of this signal
-    :ivar _origin: the object which was this proxy generated from
-    :ivar _ag: agent which controlls this proxy
-    :ivar parent: parent object
-    :ivar def_val: value used for initialization of value (done on sim. startup)
-    :ivar val: actual value of signal
-    :ivar val_next: place for metainformations about next update
+    :ivar ~.callbacks: list of sim processes which will be waken up if signal value is updated
+    :ivar ~.sim: main simulator
+    :ivar ~.name: name of property which is this proxy stored in on parent
+    :ivar ~._name: signal name which was used in HDL
+    :ivar ~._dtype: data type of this signal
+    :ivar ~._origin: the object which was this proxy generated from
+    :ivar ~._ag: agent which controlls this proxy
+    :ivar ~.parent: parent object
+    :ivar ~.def_val: value used for initialization of value (done on sim. startup)
+    :ivar ~.val: actual value of signal
+    :ivar ~.val_next: place for metainformations about next update
     """
     __slots__ = ["callbacks", "sim", "name", "_name", "parent",
                  "_dtype", "_origin", "_ag",
