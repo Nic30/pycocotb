@@ -16,11 +16,11 @@ class CallbackLoop(object):
         :attention: if condFn is None callback function is always executed
 
         :ivra fn: function/generator which is callback which should be executed
-        :ivar isGenerator: flag if callback function is generator
+        :ivar ~.isGenerator: flag if callback function is generator
             or normal function
-        :ivar shouldBeEnabledFn: function() -> bool, which returns True if this
+        :ivar ~.shouldBeEnabledFn: function() -> bool, which returns True if this
             callback loop should be enabled
-        :ivar pre_init: if True the 'fn' is executed once imidiately for an intialization
+        :ivar ~.pre_init: if True the 'fn' is executed once imidiately for an intialization
             before any callback is triggered
         """
         assert not isinstance(fn, CallbackLoop)

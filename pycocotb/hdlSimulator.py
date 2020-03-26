@@ -86,9 +86,9 @@ class HdlSimulator():
     and simulation processes which are driving the circuit simulation.
     Simulation processes are usually provided by simulation agents or user.
 
-    :ivar now: actual simulation time
-    :ivar _events: heap of simulation events and processes
-    :ivar rtl_simulator: circuit simulator used for simulation of circuit itself
+    :ivar ~.now: actual simulation time
+    :ivar ~._events: heap of simulation events and processes
+    :ivar ~.rtl_simulator: circuit simulator used for simulation of circuit itself
     """
 
     def __init__(self, rtl_simulator):

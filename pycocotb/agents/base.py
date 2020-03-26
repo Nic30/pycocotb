@@ -16,9 +16,9 @@ class AgentBase():
     driver is used for slave interfaces
     monitor is used for master interfaces
 
-    :ivar intf: interface assigned to this agent
-    :ivar _enable: flag to enable/disable this agent
-    :ivar _debugOutput: optional stream where to print debug messages
+    :ivar ~.intf: interface assigned to this agent
+    :ivar ~._enable: flag to enable/disable this agent
+    :ivar ~._debugOutput: optional stream where to print debug messages
     """
     # because ohterwise there will be a cycle and python
     # will not be able to deallocate this and sim/intf

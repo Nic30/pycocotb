@@ -51,14 +51,14 @@ class I2cAgent(AgentWitReset):
     :note: slave has to check address in function because some devices may actually use
         part of address as opt code etc. because of this this agent needs to be more generic
 
-    :ivar data_m: the buffer for transaction for master
-    :ivar data_m_read: the buffer for readed data by master
-    :ivar start: flag, if True the master should send I2C START
-    :ivar stop: flag, if True the master should send I2C STOP
+    :ivar ~.data_m: the buffer for transaction for master
+    :ivar ~.data_m_read: the buffer for readed data by master
+    :ivar ~.start: flag, if True the master should send I2C START
+    :ivar ~.stop: flag, if True the master should send I2C STOP
 
-    :ivar bit_cntrl: the buffer for commands for specific SDA value
+    :ivar ~.bit_cntrl: the buffer for commands for specific SDA value
                     (intermediate instructions)
-    :ivar bit_cntrl_rx: the buffer for a bit values of SDA
+    :ivar ~.bit_cntrl_rx: the buffer for a bit values of SDA
                     (intermediate read value)
     """
 

@@ -25,7 +25,7 @@ BAUD_DEFAULT = BAUD_115200
 
 class UartDataAgent(AgentBase):
     """
-    :ivar char_buff: the buffer used for bits while sending the character
+    :ivar ~.char_buff: the buffer used for bits while sending the character
     """
     START_BIT = 0
     STOP_BIT = 1
