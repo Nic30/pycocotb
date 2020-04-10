@@ -52,7 +52,7 @@ class I2cAgent(AgentWitReset):
         part of address as opt code etc. because of this this agent needs to be more generic
 
     :ivar ~.data_m: the buffer for transaction for master
-    :ivar ~.data_m_read: the buffer for readed data by master
+    :ivar ~.data_m_read: the buffer for read data by master
     :ivar ~.start: flag, if True the master should send I2C START
     :ivar ~.stop: flag, if True the master should send I2C STOP
 
