@@ -45,6 +45,10 @@ class BasicRtlSimProxy():
         self.simFallingSensProcs = SortedSet(key=id)
         self.simSensProcs = SortedSet(key=id)
 
+    def init_def_val(self, *args, **kwargs):
+        self.def_val = self._dtype.from_py(*args, **kwargs)
+        return self
+
     def read(self):
         assert self.sim.read_only_not_write_only
         return copy(self.val)
@@ -147,6 +151,9 @@ class BasicRtlSimProxy():
 
 
 class BasicRtlSimProxyArrItem():
+    """
+    Virtual proxy for an array item of BasicRtlSimProxy
+    """
 
     def __init__(self, parent_proxy, item_index):
         self.parent_proxy = parent_proxy
