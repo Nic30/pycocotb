@@ -2,27 +2,16 @@ from copy import copy
 from typing import Tuple
 
 
-def sim_eval_cond(*conds):
+def sim_eval_cond(v):
     """
     Evaluate list of values as condition
 
     :return: tuple (value, value valid)
     """
-    _cond = True
-    _vld = True
-    for v in conds:
-        val = bool(v.val)
-        fullVld = v.vld_mask == 1
-        if fullVld:
-            if not val:
-                return False, True
-        else:
-            return False, False
-
-        _cond = _cond and val
-        _vld = _vld and fullVld
-
-    return _cond, _vld
+    if v.vld_mask == 1:
+        return bool(v.val), True
+    else:
+        return False, False
 
 
 def valueHasChanged(valA: "Value", valB: "Value"):
