@@ -50,6 +50,7 @@ setup(
     install_requires=[
         "jinja2",  # template engine
         "sortedcontainers",  # for calendar queue in simulator
+        "pyMathBitPrecise>=0.4",  # bit precise integer types for sim
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",

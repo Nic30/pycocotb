@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 language: python
 sudo: true
 git:
@@ -28,7 +28,7 @@ matrix:
     - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 before_install:
 - eval "${MATRIX_EVAL}"
-- pip install pytest coveralls
+- pip install pytest coveralls git+https://github.com/Nic30/pyMathBitPrecise.git
 install:
 - |
   cd verilator;
