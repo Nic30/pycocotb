@@ -12,6 +12,9 @@ python:
 - '3.7'
 addons:
   apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - sourceline: ppa:mhier/libboost-latest
     packages:
     - boost1.67
     - flex
