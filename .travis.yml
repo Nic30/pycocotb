@@ -1,4 +1,4 @@
-dist: bionic
+dist: focal
 language: python
 sudo: true
 git:
@@ -9,7 +9,7 @@ cache:
 - directories:
   - verilator
 python:
-- '3.6'
+- '3.7'
 addons:
   apt:
     sources:
