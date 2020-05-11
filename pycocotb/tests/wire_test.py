@@ -30,14 +30,14 @@ class VerilatorWireTC(unittest.TestCase):
             io = rtl_sim.io
             sim = HdlSimulator(rtl_sim)
 
-            readed = []
+            r_data = []
 
             def data_collect():
                 for d_ref in test_data:
                     yield WaitCombRead()
                     d = io.outp.read()
                     d = int(d)
-                    readed.append(d)
+                    r_data.append(d)
                     self.assertEqual(d, d_ref)
                     yield Timer(CLK_PERIOD)
 
@@ -54,7 +54,7 @@ class VerilatorWireTC(unittest.TestCase):
                         data_feed()
                         ]
                     )
-            self.assertEqual(len(readed), len(test_data))
+            self.assertEqual(len(r_data), len(test_data))
 
     def test_wire2(self):
         data = [1, 2, 3, 0, 2, 1, 2, 0, 2]
