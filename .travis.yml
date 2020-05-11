@@ -21,8 +21,6 @@ matrix:
   include:
   - os: linux
     compiler: gcc
-    env:
-    - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
 before_install:
 - eval "${MATRIX_EVAL}"
 - pip install pytest coveralls git+https://github.com/Nic30/pyMathBitPrecise.git
