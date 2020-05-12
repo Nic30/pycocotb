@@ -22,13 +22,10 @@ def sensitivity(
             s.simSensProcs.add(proc_fn)
 
 
-def connectSimPort(simUnit, subSimUnit, srcName, dstName, dir_to_subcomponent):
+def connectSimPort(sim_unit, sim_sub_unit, unit_port_name: str, sub_unit_port_name: str):
     """
     Connect ports of simulation models by name
+    (Replace a child port with a parent signal/port directly)
     """
-    if dir_to_subcomponent:
-        newPort = getattr(simUnit.io, srcName)
-        setattr(subSimUnit.io, dstName, newPort)
-    else:
-        newPort = getattr(simUnit.io, dstName)
-        setattr(subSimUnit.io, srcName, newPort)
+    newPort = getattr(sim_unit.io, unit_port_name)
+    setattr(sim_sub_unit.io, sub_unit_port_name, newPort)

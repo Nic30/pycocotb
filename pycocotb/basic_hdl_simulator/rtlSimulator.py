@@ -43,6 +43,10 @@ class BasicRtlSimulator():
         self._proc_outputs = {}
         self._updates_to_apply = []
         self.signals_checked_for_change = set()
+        # [TODO] rm SortedSet and replace it with UniqList
+        #    it is useless to sort by an random value
+        #    the collections do not have to be sorted,
+        #    but it is nice to have them sorted for debug
         self._comb_procs_to_run = SortedSet(key=id)
         self._seq_procs_to_run = SortedSet(key=id)
         self.config = BasicRtlSimConfig()
