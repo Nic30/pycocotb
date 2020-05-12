@@ -1,5 +1,4 @@
 from enum import Enum
-from sortedcontainers.sortedset import SortedSet
 from typing import Tuple, Callable, Generator, Optional
 
 from pycocotb.basic_hdl_simulator.config import BasicRtlSimConfig
@@ -47,8 +46,8 @@ class BasicRtlSimulator():
         #    it is useless to sort by an random value
         #    the collections do not have to be sorted,
         #    but it is nice to have them sorted for debug
-        self._comb_procs_to_run = SortedSet(key=id)
-        self._seq_procs_to_run = SortedSet(key=id)
+        self._comb_procs_to_run = set()
+        self._seq_procs_to_run = set()
         self.config = BasicRtlSimConfig()
         self._updated_in_this_step = set()
         self.needs_init = True
@@ -160,7 +159,7 @@ class BasicRtlSimulator():
             proc()
             updated.extend(io)
 
-        self._seq_procs_to_run = SortedSet(key=id)
+        self._seq_procs_to_run = set()
 
         for sig in updated:
             if sig.val_next is not None:

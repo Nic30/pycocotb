@@ -1,5 +1,4 @@
 from copy import copy
-from sortedcontainers.sortedset import SortedSet
 
 from pyMathBitPrecise.array3t import Array3t
 from pyMathBitPrecise.bits3t import Bits3t
@@ -41,9 +40,9 @@ class BasicRtlSimProxy():
         self._dtype = dtype  # type notation for python
         self._origin = None  # signal object which this proxy substitutes
         self._ag = None  # simulation agent which drive or monitor this signal
-        self.simRisingSensProcs = SortedSet(key=id)
-        self.simFallingSensProcs = SortedSet(key=id)
-        self.simSensProcs = SortedSet(key=id)
+        self.simRisingSensProcs = set()
+        self.simFallingSensProcs = set()
+        self.simSensProcs = set()
 
     def init_def_val(self, *args, **kwargs):
         self.def_val = self._dtype.from_py(*args, **kwargs)
