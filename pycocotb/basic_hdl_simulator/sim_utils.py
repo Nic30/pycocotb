@@ -1,5 +1,6 @@
 from copy import copy
 from typing import Tuple
+from itertools import islice
 
 
 def sim_eval_cond(v):
@@ -50,16 +51,19 @@ def mkArrayUpdater(nextItemVal: "Value", indexes: Tuple["Value"],
     """
 
     def updater(currentVal):
+        _currentVal = currentVal
         if len(indexes) > 1:
             raise NotImplementedError("[TODO] implement for more indexes")
+            for i in islice(indexes, len(indexes) - 1):
+                _currentVal = _currentVal[i]
 
         _nextItemVal = copy(nextItemVal)
         if invalidate:
             _nextItemVal.vld_mask = 0
 
-        index = indexes[0]
-        change = valueHasChanged(currentVal[index], _nextItemVal)
-        currentVal[index] = _nextItemVal
+        index = indexes[-1]
+        change = valueHasChanged(_currentVal[index], _nextItemVal)
+        _currentVal[index] = _nextItemVal
         return (change, currentVal)
 
     return updater
