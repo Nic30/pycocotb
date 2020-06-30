@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Tuple, Callable, Generator, Optional
 
-from pycocotb.basic_hdl_simulator.config import BasicRtlSimConfig
 from pycocotb.basic_hdl_simulator.io import BasicRtlSimIo
 from pycocotb.basic_hdl_simulator.model import BasicRtlSimModel
 from pycocotb.basic_hdl_simulator.proxy import BasicRtlSimProxy
@@ -16,7 +15,7 @@ class BasicRtlSimulatorSt(Enum):
 
 def isEvDependentOn(sig: BasicRtlSimProxy, process) -> bool:
     """
-    Check if hdl process has event depenency on signal
+    Check if hdl process has event dependency on signal
     """
     if sig is None:
         return False
@@ -31,6 +30,10 @@ class BasicRtlSimulator():
     END_OF_STEP = 2  # all parts of circuit updated and stable
 
     def __init__(self):
+        self._init_main()
+        self._init_listeners()
+
+    def _init_main(self):
         # container of signals in simulation
         self.io = None  # type: BasicRtlSimIo
         self.model = None  # type: BasicRtlSimModel
@@ -42,15 +45,15 @@ class BasicRtlSimulator():
         self._proc_outputs = {}
         self._updates_to_apply = []
         self.signals_checked_for_change = set()
-        # [TODO] rm SortedSet and replace it with UniqList
-        #    it is useless to sort by an random value
-        #    the collections do not have to be sorted,
-        #    but it is nice to have them sorted for debug
         self._comb_procs_to_run = set()
         self._seq_procs_to_run = set()
-        self.config = BasicRtlSimConfig()
         self._updated_in_this_step = set()
         self.needs_init = True
+
+    def _init_listeners(self):
+        self.logChange = False
+        self.logPropagation = False
+        self.logApplyingValues = False
 
     def bound_model(self, model: BasicRtlSimModel):
         self.model = model
@@ -132,7 +135,7 @@ class BasicRtlSimulator():
 
             va = self._updates_to_apply
             # log if there are items to log
-            lav = self.config.logApplyingValues
+            lav = self.logApplyingValues
             if va and lav:
                 lav(self, va)
             self._updates_to_apply = []

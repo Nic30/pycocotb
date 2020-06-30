@@ -85,11 +85,11 @@ class BasicRtlSimProxy():
         v = self.val
         sim = self.sim
         sim._updated_in_this_step.add(self)
-        log = sim.config.logChange
+        log = sim.logChange
         if log:
             log(sim.time, self, v)
 
-        log = sim.config.logPropagation
+        log = sim.logPropagation
         if log:
             log(sim, self, self.simSensProcs)
 
