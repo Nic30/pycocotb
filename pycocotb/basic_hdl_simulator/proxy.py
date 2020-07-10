@@ -65,7 +65,7 @@ class BasicRtlSimProxy():
             )
         if valueHasChanged(self.val, val):
             self.val = val
-            self._propagate_changes()
+            self._propagate_changes(None)
 
     def wait(self, cb):
         self.callbacks.append(cb)
@@ -79,15 +79,15 @@ class BasicRtlSimProxy():
         assert new_val._dtype == self._dtype, (self, self.sim.time, new_val._dtype, self._dtype)
         if dirty_flag:
             self.val = new_val
-            self._propagate_changes()
+            self._propagate_changes(valUpdater)
 
-    def _propagate_changes(self):
+    def _propagate_changes(self, valUpdater):
         v = self.val
         sim = self.sim
         sim._updated_in_this_step.add(self)
         log = sim.logChange
         if log:
-            log(sim.time, self, v)
+            log(sim.time, self, v, valUpdater)
 
         log = sim.logPropagation
         if log:

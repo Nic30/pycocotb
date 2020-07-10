@@ -4,7 +4,8 @@ from typing import Tuple, Callable, Generator, Optional
 from pycocotb.basic_hdl_simulator.io import BasicRtlSimIo
 from pycocotb.basic_hdl_simulator.model import BasicRtlSimModel
 from pycocotb.basic_hdl_simulator.proxy import BasicRtlSimProxy
-from pycocotb.basic_hdl_simulator.sim_utils import mkArrayUpdater, mkUpdater
+from pycocotb.basic_hdl_simulator.sim_utils import ValueUpdater,\
+    ArrayValueUpdater
 
 
 class BasicRtlSimulatorSt(Enum):
@@ -75,7 +76,7 @@ class BasicRtlSimulator():
         # set initial value to all signals and propagate it
         for s in model._interfaces:
             if s.def_val is not None:
-                s._apply_update(mkUpdater(s.def_val, False))
+                s._apply_update(ValueUpdater(s.def_val, False))
 
         for u in model._units:
             self._init_model_signals(u)
@@ -107,11 +108,11 @@ class BasicRtlSimulator():
         if len(newValue) == 3:
             # update for item in array
             val, indexes, isEvDependent = newValue
-            return (mkArrayUpdater(val, indexes, invalidate), isEvDependent)
+            return (ArrayValueUpdater(val, indexes, invalidate), isEvDependent)
         else:
             # update for simple signal
             val, isEvDependent = newValue
-            return (mkUpdater(val, invalidate), isEvDependent)
+            return (ValueUpdater(val, invalidate), isEvDependent)
 
     def _run_comb_processes(self) -> None:
         """
