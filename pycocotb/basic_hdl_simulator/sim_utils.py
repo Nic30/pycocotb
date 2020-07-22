@@ -1,4 +1,3 @@
-from copy import copy
 from typing import Tuple
 from itertools import islice
 
@@ -33,7 +32,7 @@ class ValueUpdater():
         self.invalidate = invalidate
 
     def __call__(self, currentVal: "Value"):
-        _nextVal = copy(self.nextVal)
+        _nextVal = self.nextVal.__copy__()
         if self.invalidate:
             _nextVal.vld_mask = 0
         return (valueHasChanged(currentVal, _nextVal), _nextVal)
@@ -63,7 +62,7 @@ class ArrayValueUpdater():
                 _currentVal = _currentVal[i]
 
         nextItemVal = self.nextItemVal
-        _nextItemVal = copy(nextItemVal)
+        _nextItemVal = nextItemVal.__copy__()
         if self.invalidate:
             _nextItemVal.vld_mask = 0
 

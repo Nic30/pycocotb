@@ -1,5 +1,3 @@
-from copy import copy
-
 from pyMathBitPrecise.array3t import Array3t
 from pyMathBitPrecise.bits3t import Bits3t
 from pycocotb.basic_hdl_simulator.sim_utils import valueHasChanged
@@ -50,7 +48,7 @@ class BasicRtlSimProxy():
 
     def read(self):
         assert self.sim.read_only_not_write_only
-        return copy(self.val)
+        return self.val.__copy__()
 
     def write(self, val):
         assert not self.sim.read_only_not_write_only
@@ -167,4 +165,4 @@ class BasicRtlSimProxyArrItem():
         if v is None:
             return self._dtype.from_py(None)
 
-        return copy(v)
+        return v.__copy__()
