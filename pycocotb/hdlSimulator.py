@@ -273,9 +273,8 @@ class HdlSimulator():
         if self.now == time:
             self._current_event_list.append(ev)
         else:
-            try:
-                ts = self._events[time]
-            except KeyError:
+            ts = self._events.get(time, None)
+            if ts is None:
                 ts = SimTimeSlot()
                 self.schedule(time, ts)
             if ts.write_only is None:

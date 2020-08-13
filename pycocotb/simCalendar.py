@@ -8,7 +8,6 @@ class DONE:
 
 class SimTimeSlot():
     """
-
     :note: write/read only is related
            to access to circuit from python code
     :note: event types
@@ -22,6 +21,7 @@ class SimTimeSlot():
     :note: if write_only is required in comb_stable or later error is rised
         if it called before the SimTimeSlot is evaluated from beginning
     """
+    __slots__ = ['timeslot_begin', 'write_only', 'comb_read', 'comb_stable', 'mem_stable', 'timeslot_end']
 
     def __init__(self):
         self.timeslot_begin = None
@@ -59,5 +59,4 @@ class SimCalendar(SortedDict):
         super(SimCalendar, self).__setitem__(time, value)
 
     def pop(self) -> Tuple[int, object]:
-        item = super(SimCalendar, self).popitem(0)
-        return item
+        return super(SimCalendar, self).popitem(0)

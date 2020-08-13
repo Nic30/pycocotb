@@ -1,5 +1,3 @@
-from copy import copy
-
 from pyMathBitPrecise.array3t import Array3t
 from pyMathBitPrecise.bits3t import Bits3t
 from pycocotb.basic_hdl_simulator.sim_utils import valueHasChanged
@@ -50,7 +48,7 @@ class BasicRtlSimProxy():
 
     def read(self):
         assert self.sim.read_only_not_write_only
-        return copy(self.val)
+        return self.val.__copy__()
 
     def write(self, val):
         assert not self.sim.read_only_not_write_only
@@ -65,7 +63,7 @@ class BasicRtlSimProxy():
             )
         if valueHasChanged(self.val, val):
             self.val = val
-            self._propagate_changes()
+            self._propagate_changes(None)
 
     def wait(self, cb):
         self.callbacks.append(cb)
@@ -79,17 +77,17 @@ class BasicRtlSimProxy():
         assert new_val._dtype == self._dtype, (self, self.sim.time, new_val._dtype, self._dtype)
         if dirty_flag:
             self.val = new_val
-            self._propagate_changes()
+            self._propagate_changes(valUpdater)
 
-    def _propagate_changes(self):
+    def _propagate_changes(self, valUpdater):
         v = self.val
         sim = self.sim
         sim._updated_in_this_step.add(self)
-        log = sim.config.logChange
+        log = sim.logChange
         if log:
-            log(sim.time, self, v)
+            log(sim.time, self, v, valUpdater)
 
-        log = sim.config.logPropagation
+        log = sim.logPropagation
         if log:
             log(sim, self, self.simSensProcs)
 
@@ -167,4 +165,4 @@ class BasicRtlSimProxyArrItem():
         if v is None:
             return self._dtype.from_py(None)
 
-        return copy(v)
+        return v.__copy__()

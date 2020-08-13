@@ -42,7 +42,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='pycocotb',
-    version='0.6',
+    version='0.7',
     description='RTL simulator API',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -50,7 +50,7 @@ setup(
     install_requires=[
         "jinja2",  # template engine
         "sortedcontainers",  # for calendar queue in simulator
-        "pyMathBitPrecise>=0.4",  # bit precise integer types for sim
+        "pyMathBitPrecise>=0.6",  # bit precise integer types for sim
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",
