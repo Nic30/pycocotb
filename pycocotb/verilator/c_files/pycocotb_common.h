@@ -7,6 +7,7 @@
 
 #include <boost/coroutine2/all.hpp>
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <structmember.h>
 
