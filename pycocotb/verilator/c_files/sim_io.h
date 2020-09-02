@@ -1,5 +1,6 @@
 #pragma once
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include "signal_mem_proxy.h"
 #include "signal_array_mem_proxy.h"
