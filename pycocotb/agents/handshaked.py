@@ -12,6 +12,8 @@ class HandshakedAgent(SyncAgentBase):
     interface there is onMonitorReady(simulator)
     and onDriverWriteAck(simulator) unimplemented method
     which can be used for interfaces with bi-directional data streams
+
+    :note: 2-phase (xor) handshake
     """
 
     def __init__(self, sim: HdlSimulator, intf, clk: "RtlSignal",
