@@ -18,13 +18,16 @@ class ClockAgent(AgentBase):
     :ivar ~.initWait: time to wait before starting oscillation
     """
 
-    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", period=CLK_PERIOD):
+    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", period: int=CLK_PERIOD):
         super(ClockAgent, self).__init__(sim, intf)
+        assert isinstance(period, int)
         self.period = period
         self.initWait = 0
         self.monitor = CallbackLoop(sim, self.intf, self.monitor, self.getEnable)
 
     def driver(self):
+        assert isinstance(self.period, int)
+        assert isinstance(self.initWait, int)
         sig = self.intf
         yield WaitWriteOnly()
         sig.write(0)
@@ -47,6 +50,8 @@ class ClockAgent(AgentBase):
         return super(ClockAgent, self).getMonitors()
 
     def monitor(self):
+        assert isinstance(self.period, int)
+        assert isinstance(self.initWait, int)
         yield WaitCombRead()
         v = self.intf.read()
         try:

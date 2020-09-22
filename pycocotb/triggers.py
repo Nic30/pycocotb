@@ -91,7 +91,8 @@ class Timer(Action):
     next activation of process will be now + time
     """
 
-    def __init__(self, time):
+    def __init__(self, time: int):
+        assert isinstance(time, int)
         self.time = time
 
     def applyProcess(self, sim, process):

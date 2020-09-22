@@ -56,6 +56,7 @@ class SimCalendar(SortedDict):
     """
 
     def push(self, time: int, value: SimTimeSlot):
+        assert isinstance(time, int)
         super(SimCalendar, self).__setitem__(time, value)
 
     def pop(self) -> Tuple[int, object]:

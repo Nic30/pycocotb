@@ -10,8 +10,9 @@ class PullUpAgent(AgentBase):
     :note: usually used for negated reset
     """
 
-    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", initDelay=0.6 * CLK_PERIOD):
+    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", initDelay=int(0.6 * CLK_PERIOD)):
         super(PullUpAgent, self).__init__(sim, intf)
+        assert isinstance(initDelay, int)
         self.initDelay = initDelay
         self.data = []
 
@@ -30,8 +31,9 @@ class PullDownAgent(AgentBase):
     :note: usually used for reset
     """
 
-    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", initDelay=0.6 * CLK_PERIOD):
+    def __init__(self, sim: HdlSimulator, intf: "RtlSignal", initDelay=int(0.6 * CLK_PERIOD)):
         super(PullDownAgent, self).__init__(sim, intf)
+        assert isinstance(initDelay, int)
         self.initDelay = initDelay
         self.data = []
 
