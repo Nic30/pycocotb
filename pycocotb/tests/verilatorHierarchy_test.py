@@ -58,7 +58,7 @@ class VerilatorHierarchyTC(unittest.TestCase):
                 for i in io.fifo_inst.memory:
                     i.read()
 
-            sim.run(CLK_PERIOD * 10.5,
+            sim.run(int(CLK_PERIOD * 10.5),
                     extraProcesses=[
                         check_if_can_read()
                     ]

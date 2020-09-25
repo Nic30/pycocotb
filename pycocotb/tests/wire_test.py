@@ -48,7 +48,7 @@ class VerilatorWireTC(unittest.TestCase):
                     yield Timer(CLK_PERIOD)
 
             rtl_sim.set_trace_file(join(build_dir, "wire%d.vcd" % DW), -1)
-            sim.run(CLK_PERIOD * (len(test_data) + 0.5),
+            sim.run(int(CLK_PERIOD * (len(test_data) + 0.5)),
                     extraProcesses=[
                         data_collect(),
                         data_feed()
