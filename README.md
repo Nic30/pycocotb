@@ -41,17 +41,19 @@ After installation verilator has to run under cygwin, but python and this librar
 * experimental Python <-> Verilator RTL simulator binding (pycocotb.verilator)
 * experimental Python based RTL simulator (pycocotb.basic_hdl_simulator)
 * some examples in tests
+* used in [HWT](https://github.com/Nic30/hwt), many example hardware tests can be found in [hwtLib](https://github.com/Nic30/hwtLib) 
 
 
 # Similar software
 
-* [midas](https://github.com/ucb-bar/midas)
-* [firesim](https://github.com/firesim/firesim)
 * [cocotb](https://github.com/cocotb/cocotb) - there is also WIP version of cocotb-verilator integration
 * [cocotb-coverage](https://github.com/mciepluc/cocotb-coverage) - Functional Coverage and Constrained Randomization Extensions for Cocotb 
 * [chisel-testers](https://github.com/freechipsproject/chisel-testers)
+* [firesim](https://github.com/firesim/firesim)
 * [fli](https://github.com/andrepool/fli) - using ModelSim Foreign Language Interface for c – VHDL
-* [py-hpi](https://github.com/fvutils/py-hpi) - Python/Simulator integration using procedure calls 
 * [kratos](https://github.com/Kuree/kratos) - hardware generator/simulator
+* [midas](https://github.com/ucb-bar/midas)
+* [py-hpi](https://github.com/fvutils/py-hpi) - Python/Simulator integration using procedure calls 
+* [PyVSC](https://github.com/fvutils/pyvsc) Python package providing a library for Verification Stimulus and Coverage
 * [uvm-python](https://github.com/tpoikela/uvm-python) - cocotb based python UVM
 
