@@ -88,7 +88,7 @@ class VerilatorHandshakedWireTC(unittest.TestCase):
                 *dout_ag.getMonitors(),
                 *extra_procs,
             ]
-            sim.run(CLK_PERIOD * 20.5, extraProcesses=proc)
+            sim.run(int(CLK_PERIOD * 20.5), extraProcesses=proc)
             return sim, din_ag, dout_ag
 
     def test_nop(self):

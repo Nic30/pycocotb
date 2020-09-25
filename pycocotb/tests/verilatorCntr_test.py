@@ -83,7 +83,7 @@ class VerilatorCntrTC(unittest.TestCase):
                 get_pull_up_driver(sim, io.en, CLK_PERIOD),
                 data_collector()
             ]
-            sim.run(CLK_PERIOD * 10.5, extraProcesses=procs)
+            sim.run(int(CLK_PERIOD * 10.5), extraProcesses=procs)
 
             self.assertSequenceEqual(data, REF_DATA)
 
@@ -108,7 +108,7 @@ class VerilatorCntrTC(unittest.TestCase):
                 get_pull_up_driver(sim, io.en, CLK_PERIOD),
                 get_sync_sig_monitor(sim, io.val, io.clk, io.rst, data)
             ]
-            sim.run(CLK_PERIOD * 10.5, extraProcesses=procs)
+            sim.run(int(CLK_PERIOD * 10.5), extraProcesses=procs)
 
             self.assertSequenceEqual(data, REF_DATA)
 
@@ -133,7 +133,7 @@ class VerilatorCntrTC(unittest.TestCase):
                 get_pull_up_driver_with_reset(sim, io.en, io.rst, CLK_PERIOD),
                 get_sync_sig_monitor(sim, io.val, io.clk, io.rst, data)
             ]
-            sim.run(CLK_PERIOD * 10.5, extraProcesses=proc)
+            sim.run(int(CLK_PERIOD * 10.5), extraProcesses=proc)
 
             self.assertSequenceEqual(data, REF_DATA)
 
@@ -159,7 +159,7 @@ class VerilatorCntrTC(unittest.TestCase):
                 get_sync_pull_up_driver_with_reset(sim, io.en, io.clk, io.rst),
                 get_sync_sig_monitor(sim, io.val, io.clk, io.rst, data)
             ]
-            sim.run(CLK_PERIOD * 10.5, extraProcesses=proc)
+            sim.run(int(CLK_PERIOD * 10.5), extraProcesses=proc)
 
             self.assertSequenceEqual(data, REF_DATA)
 
@@ -178,7 +178,7 @@ class VerilatorCntrTC(unittest.TestCase):
                 get_sync_sig_monitor(sim, io.val, io.clk, io.rst, data)
             ]
             rtl_sim.set_trace_file(join(build_dir, "cntr.vcd"), -1)
-            sim.run(CLK_PERIOD * 10.5, extraProcesses=procs)
+            sim.run(int(CLK_PERIOD * 10.5), extraProcesses=procs)
 
             self.assertSequenceEqual(data, REF_DATA)
 
