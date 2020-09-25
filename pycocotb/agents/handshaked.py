@@ -25,8 +25,10 @@ class HandshakedAgent(SyncAgentBase):
         self._lastWritten = None
         self._lastRd = None
         self._lastVld = None
+        self._readyComnsummed = True
         # callbacks
         self._afterRead = None
+        
 
     def setEnable_asDriver(self, en):
         super(HandshakedAgent, self).setEnable_asDriver(en)
@@ -81,6 +83,7 @@ class HandshakedAgent(SyncAgentBase):
     def monitor(self):
         """
         Collect data from interface
+        If onMonitorReady is present run it before setting ready and before data is read from the channel
         """
         start = self.sim.now
         yield WaitCombRead()
@@ -91,30 +94,29 @@ class HandshakedAgent(SyncAgentBase):
             yield WaitWriteOnly()
             if not self._enabled:
                 return
-            # update rd signal only if required
-            if self._lastRd is not 1:
-                self.set_ready(1)
-                self._lastRd = 1
 
-                # try to run onMonitorReady if there is any
-                try:
-                    onMonitorReady = self.onMonitorReady
-                except AttributeError:
-                    onMonitorReady = None
-
+            if self._readyComnsummed:
+                # try to run onMonitorReady if there is any to preset value on signals potentially
+                # going against main data flow of this channel
+                onMonitorReady = getattr(self, "onMonitorReady", None)
                 if onMonitorReady is not None:
                     onMonitorReady()
+                self._readyComnsummed  = False
+
+            # update rd signal only if required
+            if self._lastRd != 1:
+                self.set_ready(1)
+                self._lastRd = 1
             else:
                 yield WaitCombRead()
                 assert int(self.get_ready()) == self._lastRd, (
-                    "Something changed the value of ready withou notifying of this agent"
+                    "Something changed the value of ready without notifying this agent"
                     " which is responsible for this",
                     self.sim.now, self.get_ready(), self._lastRd)
-                if not self._enabled:
-                    return
 
             if not self._enabled:
                 return
+
             # wait for response of master
             yield WaitCombStable()
             if not self._enabled:
@@ -126,6 +128,7 @@ class HandshakedAgent(SyncAgentBase):
                 raise AssertionError(
                     self.sim.now, self.intf,
                     "vld signal is in invalid state")
+
             if vld:
                 # master responded with positive ack, do read data
                 d = self.get_data()
@@ -137,8 +140,12 @@ class HandshakedAgent(SyncAgentBase):
                 self.data.append(d)
                 if self._afterRead is not None:
                     self._afterRead()
+
+                # data was read from th channel next ready bellongs to a different data chunk
+                self._readyComnsummed = True
         else:
-            if self._lastRd is not 0:
+            self._readyComnsummed = True
+            if self._lastRd != 0:
                 yield WaitWriteOnly()
                 # can not receive, say it to masters
                 self.set_ready(0)
