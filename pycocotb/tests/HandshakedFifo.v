@@ -9,7 +9,7 @@
                  | | | | | |
                  +-+-+-+-+-+
 
-    .. hwt-schematic:: _example_HandshakedFifo
+    .. hwt-autodoc:: _example_HandshakedFifo
     
 */
 module HandshakedFifo #(parameter  DATA_WIDTH = 8,

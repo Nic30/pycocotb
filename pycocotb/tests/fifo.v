@@ -7,7 +7,7 @@
     :ivar ~.EXPORT_SPACE: parameter, if true "space" signal is exported
     :ivar ~.space: optional signal with count of items which can be added to this fifo
     
-    .. hwt-schematic:: _example_Fifo
+    .. hwt-autodoc:: _example_Fifo
     
 */
 module fifo #(parameter  DATA_WIDTH = 8,
