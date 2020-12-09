@@ -30,7 +30,7 @@ class HandshakedAgent(SyncAgentBase):
         self._readyComnsummed = True
         # callbacks
         self._afterRead = None
-        
+
 
     def setEnable_asDriver(self, en):
         super(HandshakedAgent, self).setEnable_asDriver(en)
@@ -66,7 +66,7 @@ class HandshakedAgent(SyncAgentBase):
 
     def get_valid(self):
         """
-        get value of "valid" signal, override f.e. when you
+        get value of "valid" signal, override e.g. when you
         need to use signal with reversed polarity
         """
         raise NotImplementedError("Implement this method to read valid signal on your interface")

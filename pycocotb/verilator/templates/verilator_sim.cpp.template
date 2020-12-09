@@ -170,7 +170,7 @@ static PyMethodDef PySim_methods[] = {
         {"set_trace_file", (PyCFunction)PySim_set_trace_file<DUT_t>, METH_VARARGS,
                 "set file where data from signals should be stored\n"
                 "\n"
-                ":param file_name: name of file where trace should be stored (path of vcd file f.e.)\n"
+                ":param file_name: name of file where trace should be stored (path of vcd file e.g.)\n"
                 ":param trace_depth: number of hyerarchy levels which should be trraced (-1 = all)\n"
         },
         {"set_write_only", (PyCFunction)PySim_set_write_only, METH_NOARGS,

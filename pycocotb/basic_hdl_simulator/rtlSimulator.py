@@ -215,7 +215,7 @@ class BasicRtlSimulator():
         """
         set file where data from signals should be stored
 
-        :param file_name: name of file where trace should be stored (path of vcd file f.e.)
+        :param file_name: name of file where trace should be stored (path of vcd file e.g.)
         :param trace_depth: number of hyerarchy levels which should be trraced (-1 = all)
         """
         raise NotImplementedError()
