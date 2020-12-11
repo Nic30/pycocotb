@@ -135,10 +135,9 @@ class HandshakedAgent(SyncAgentBase):
                 # master responded with positive ack, do read data
                 d = self.get_data()
                 if self._debugOutput is not None:
+                    name = self.intf._getFullName()
                     self._debugOutput.write(
-                        "%s, read, %d: %r\n" % (
-                            self.intf._getFullName(),
-                            self.sim.now, d))
+                        f"{name:s}, read, {self.sim.now:d}: {d}\n")
                 self.data.append(d)
                 if self._afterRead is not None:
                     self._afterRead()
@@ -226,10 +225,8 @@ class HandshakedAgent(SyncAgentBase):
         if rd:
             # slave did read data, take new one
             if self._debugOutput is not None:
-                self._debugOutput.write("%s, wrote, %d: %r\n" % (
-                    self.intf._getFullName(),
-                    self.sim.now,
-                    self.actualData))
+                name = self.intf._getFullName()
+                self._debugOutput.write(f"{name:s}, wrote, {self.sim.now:d}: {self.actualData}\n")
 
             a = self.actualData
             # pop new data, because actual was read by slave

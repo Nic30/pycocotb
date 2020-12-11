@@ -45,7 +45,7 @@ IN_PLACE_LIB_DIR = os.path.abspath(
         "..",
         "..",
         "build",
-        "lib.%s-%s-%s" % (MACHDEP, AR, VERSION),
+        f"lib.{MACHDEP:s}-{AR:s}-{VERSION:s}",
         "pycocotb",
         "verilator"))
 INSTALLED_LIB_DIR = os.path.join(VER_SIM_GEN_BASE)
@@ -66,7 +66,7 @@ DEFAULT_EXTENSION_EXTRA_ARGS = {
 
 
 def verilatorCompile(files: List[str], build_dir: str):
-    include_dirs = ["-I%s" % dn
+    include_dirs = [f"-I{dn:s}"
                     for dn in set(dirname(f)
                                   for f in files)
                     if dn and dn != "."]

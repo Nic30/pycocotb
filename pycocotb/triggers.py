@@ -101,7 +101,7 @@ class Timer(Action):
         return False
 
     def __repr__(self):
-        return "<Timer %r>" % (self.time)
+        return f"<{self.__class__.__name__:s} {self.time}>"
 
 
 class WaitWriteOnly(Action):

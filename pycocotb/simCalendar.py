@@ -46,7 +46,8 @@ class SimTimeSlot():
             return "after timeslot_end"
 
     def __repr__(self):
-        return "<%s in %s>" % (self.__class__.__name__, self.get_state_name())
+        st_name = self.get_state_name()
+        return f"<{self.__class__.__name__:s} in {st_name:s}>"
 
 
 # internal

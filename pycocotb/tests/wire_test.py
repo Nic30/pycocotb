@@ -26,7 +26,7 @@ class VerilatorWireTC(unittest.TestCase):
         # build_dir = "tmp"
         # if True:
         with TemporaryDirectory() as build_dir:
-            rtl_sim = self.build_sim(build_dir, DW, "wire%d" % DW)
+            rtl_sim = self.build_sim(build_dir, DW, f"wire{DW:d}")
             io = rtl_sim.io
             sim = HdlSimulator(rtl_sim)
 
@@ -47,7 +47,7 @@ class VerilatorWireTC(unittest.TestCase):
                     io.inp.write(d)
                     yield Timer(CLK_PERIOD)
 
-            rtl_sim.set_trace_file(join(build_dir, "wire%d.vcd" % DW), -1)
+            rtl_sim.set_trace_file(join(build_dir, f"wire{DW:d}.vcd"), -1)
             sim.run(int(CLK_PERIOD * (len(test_data) + 0.5)),
                     extraProcesses=[
                         data_collect(),
