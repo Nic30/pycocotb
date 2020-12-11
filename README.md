@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/Nic30/pycocotb.svg?branch=master)](https://travis-ci.org/Nic30/pycocotb)
 [![Coverage Status](https://coveralls.io/repos/github/Nic30/pycocotb/badge.svg?branch=master)](https://coveralls.io/github/Nic30/pycocotb?branch=master)
 [![PyPI version](https://badge.fury.io/py/pycocotb.svg)](http://badge.fury.io/py/pycocotb)
-[ROADMAP](https://drive.google.com/file/d/1zyegLIf7VaBRyb-ED5vgOMmHzW4SRZLp/view?usp=sharing)
+
 
 
 This is a library which contains bindigns for RTL simulators and provides UVM like environment which simplifies feeding and checking the circuit running in RTL simulator.
